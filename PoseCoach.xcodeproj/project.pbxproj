@@ -1,0 +1,465 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C53A96975847809E9C2A45C /* CompositionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D6849D620A889986862D18F /* CompositionOverlay.swift */; };
+		121B77E93384BDE86541AEED /* PhotoMatchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03010D63AF4A2A28A7C83339 /* PhotoMatchView.swift */; };
+		1CAD9EF2EA598F903F39D612 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BBB3846329896E583C4B9F /* CameraManager.swift */; };
+		1D9828F8B2AF0AD0FF9C8CC8 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B90657B30E2BBC2C6A7C02B9 /* SettingsView.swift */; };
+		3CCED7D7748A5F76866D63A3 /* PoseCoachApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52598256A379EF9ADD31A490 /* PoseCoachApp.swift */; };
+		3EED73F07BDC09C3DFD1059C /* ReferencePhotoAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F21CBB1180DBDC9C7B4492 /* ReferencePhotoAnalyzer.swift */; };
+		434EE09AAA12894E0534EC4D /* CompositionAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB45A27EAB2C31D05B07963 /* CompositionAnalyzer.swift */; };
+		4A2ACA3B80BFC8FBD23ACE62 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AEBC4626845968120372636 /* CameraPreview.swift */; };
+		4A8D7299BD954C1DD09F8A4D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FAE9F0A79D6C1267E3F1C6FA /* Assets.xcassets */; };
+		55441BD633C992C24D8AADF4 /* SceneType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180CB06566BB5D9EC89D0727 /* SceneType.swift */; };
+		573455F5C525B0230931B244 /* PoseTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B477074DC5FAC0604D16CB66 /* PoseTemplate.swift */; };
+		67F9815D8D56CB3602BECAE1 /* PoseCoachTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E366F65255A4F1FB43E7BBBD /* PoseCoachTests.swift */; };
+		69365232703A87BC2D4EFE3B /* PoseLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F857C991803B54B1FAD8B9D /* PoseLibraryView.swift */; };
+		6EB262BDDE504FE8BD8C8136 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DFE5884C521FA8C890B711D4 /* Preview Assets.xcassets */; };
+		75B1118D78F8FF85815606AD /* ShootingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A236F70B23CD37B922016CDC /* ShootingPlan.swift */; };
+		848C24B7E33D8B892119A633 /* GuideEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7B4E3330B2BAD0CD0C04A5 /* GuideEngine.swift */; };
+		9C1DE7E0BCECA17BEB6C9CF5 /* SceneSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */; };
+		A6A5047F747223BFA5E77FDA /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 550FD114A55524388D95EC34 /* VoiceCoach.swift */; };
+		A7D2006819552F324734DDEB /* PoseDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0DCAE6EA3FEAC258182810 /* PoseDetector.swift */; };
+		AC762F9BA6FF78407C8313CF /* MainCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF27EF32E718C0FE209F1968 /* MainCameraView.swift */; };
+		AF8931D6CC4248BEF9CDC44D /* CameraParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA6F64FBA169DEFD3348BAE9 /* CameraParameters.swift */; };
+		B6E8CB658C11C3D5494D399B /* LightAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAF2F5B10F0EEB4BEE85DBD6 /* LightAnalyzer.swift */; };
+		BE12C33F8B95D8D657111D62 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A07155F90FBFCD1FA5DFF911 /* ContentView.swift */; };
+		CC3604929039DBDA8EDD52F0 /* SceneClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665D29A85919885BD3D47070 /* SceneClassifier.swift */; };
+		D6E0CF3E90913CA427D77221 /* CameraPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7D736F7C2946C391C111CB /* CameraPermissionManager.swift */; };
+		FEBE6DBF93BF188FE8CB77B4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A9BF25E8789284063969E3 /* Constants.swift */; };
+		FFAB41143E50C0CF70DCF775 /* ParameterRecommender.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC66BB0C8552219D2A050C64 /* ParameterRecommender.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7222FC7D0922C6FF5D428983 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 07FABEC937E55E550DF10D21 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6FAD0B1C540A4CD1C319D6AB;
+			remoteInfo = PoseCoach;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		03010D63AF4A2A28A7C83339 /* PhotoMatchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoMatchView.swift; sourceTree = "<group>"; };
+		180CB06566BB5D9EC89D0727 /* SceneType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneType.swift; sourceTree = "<group>"; };
+		1AEBC4626845968120372636 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
+		1F857C991803B54B1FAD8B9D /* PoseLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseLibraryView.swift; sourceTree = "<group>"; };
+		2E7D736F7C2946C391C111CB /* CameraPermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPermissionManager.swift; sourceTree = "<group>"; };
+		3B0DCAE6EA3FEAC258182810 /* PoseDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseDetector.swift; sourceTree = "<group>"; };
+		52598256A379EF9ADD31A490 /* PoseCoachApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseCoachApp.swift; sourceTree = "<group>"; };
+		550FD114A55524388D95EC34 /* VoiceCoach.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCoach.swift; sourceTree = "<group>"; };
+		59A9BF25E8789284063969E3 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		665D29A85919885BD3D47070 /* SceneClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneClassifier.swift; sourceTree = "<group>"; };
+		690353DC25F2D3BB31DC4585 /* PoseCoach.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PoseCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D6849D620A889986862D18F /* CompositionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionOverlay.swift; sourceTree = "<group>"; };
+		9C7B4E3330B2BAD0CD0C04A5 /* GuideEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideEngine.swift; sourceTree = "<group>"; };
+		A07155F90FBFCD1FA5DFF911 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A236F70B23CD37B922016CDC /* ShootingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShootingPlan.swift; sourceTree = "<group>"; };
+		B477074DC5FAC0604D16CB66 /* PoseTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseTemplate.swift; sourceTree = "<group>"; };
+		B90657B30E2BBC2C6A7C02B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CA6F64FBA169DEFD3348BAE9 /* CameraParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraParameters.swift; sourceTree = "<group>"; };
+		D1886822135F07EC52B30518 /* PoseCoachTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PoseCoachTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5BBB3846329896E583C4B9F /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
+		DFB45A27EAB2C31D05B07963 /* CompositionAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionAnalyzer.swift; sourceTree = "<group>"; };
+		DFE5884C521FA8C890B711D4 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		E366F65255A4F1FB43E7BBBD /* PoseCoachTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseCoachTests.swift; sourceTree = "<group>"; };
+		E5F21CBB1180DBDC9C7B4492 /* ReferencePhotoAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferencePhotoAnalyzer.swift; sourceTree = "<group>"; };
+		E76EFE05975DCF974AAC2DCE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSelectionView.swift; sourceTree = "<group>"; };
+		EC66BB0C8552219D2A050C64 /* ParameterRecommender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterRecommender.swift; sourceTree = "<group>"; };
+		FAE9F0A79D6C1267E3F1C6FA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FAF2F5B10F0EEB4BEE85DBD6 /* LightAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightAnalyzer.swift; sourceTree = "<group>"; };
+		FF27EF32E718C0FE209F1968 /* MainCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCameraView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		0EE456C25346D66D7A158686 /* PoseCoachTests */ = {
+			isa = PBXGroup;
+			children = (
+				E366F65255A4F1FB43E7BBBD /* PoseCoachTests.swift */,
+			);
+			path = PoseCoachTests;
+			sourceTree = "<group>";
+		};
+		0FF32DC416D2804B7B1EF897 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				7D6849D620A889986862D18F /* CompositionOverlay.swift */,
+				FF27EF32E718C0FE209F1968 /* MainCameraView.swift */,
+				1F857C991803B54B1FAD8B9D /* PoseLibraryView.swift */,
+				E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */,
+				B90657B30E2BBC2C6A7C02B9 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		329B8E01CE9747C71C6668C6 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				DFE5884C521FA8C890B711D4 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		39C2CA4A900BED9B116CBAF0 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				D5BBB3846329896E583C4B9F /* CameraManager.swift */,
+				2E7D736F7C2946C391C111CB /* CameraPermissionManager.swift */,
+				1AEBC4626845968120372636 /* CameraPreview.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		59D17DC0707234047BA91127 /* Guide */ = {
+			isa = PBXGroup;
+			children = (
+				9C7B4E3330B2BAD0CD0C04A5 /* GuideEngine.swift */,
+				EC66BB0C8552219D2A050C64 /* ParameterRecommender.swift */,
+				550FD114A55524388D95EC34 /* VoiceCoach.swift */,
+			);
+			path = Guide;
+			sourceTree = "<group>";
+		};
+		61254C63EBB5F19676BC947F /* PoseCoach */ = {
+			isa = PBXGroup;
+			children = (
+				D44436BF8CB9D7F6ABEF34DE /* AI */,
+				ADB49C5201DBA1DEC42B8FB9 /* App */,
+				39C2CA4A900BED9B116CBAF0 /* Camera */,
+				59D17DC0707234047BA91127 /* Guide */,
+				E2E16332E552EEA27673C58A /* Models */,
+				A093C0BD2614A7B01629E86E /* PhotoMatch */,
+				329B8E01CE9747C71C6668C6 /* Preview Content */,
+				B96B7C920E2B57774A09CBC7 /* Resources */,
+				A7D8075A3363BBA2687EA8BD /* Utils */,
+				0FF32DC416D2804B7B1EF897 /* Views */,
+			);
+			path = PoseCoach;
+			sourceTree = "<group>";
+		};
+		A093C0BD2614A7B01629E86E /* PhotoMatch */ = {
+			isa = PBXGroup;
+			children = (
+				03010D63AF4A2A28A7C83339 /* PhotoMatchView.swift */,
+				E5F21CBB1180DBDC9C7B4492 /* ReferencePhotoAnalyzer.swift */,
+			);
+			path = PhotoMatch;
+			sourceTree = "<group>";
+		};
+		A7D8075A3363BBA2687EA8BD /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				59A9BF25E8789284063969E3 /* Constants.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		ADB49C5201DBA1DEC42B8FB9 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A07155F90FBFCD1FA5DFF911 /* ContentView.swift */,
+				52598256A379EF9ADD31A490 /* PoseCoachApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		B60D3B1512372B63B221719E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				690353DC25F2D3BB31DC4585 /* PoseCoach.app */,
+				D1886822135F07EC52B30518 /* PoseCoachTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B96B7C920E2B57774A09CBC7 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				FAE9F0A79D6C1267E3F1C6FA /* Assets.xcassets */,
+				E76EFE05975DCF974AAC2DCE /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D44436BF8CB9D7F6ABEF34DE /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				DFB45A27EAB2C31D05B07963 /* CompositionAnalyzer.swift */,
+				FAF2F5B10F0EEB4BEE85DBD6 /* LightAnalyzer.swift */,
+				3B0DCAE6EA3FEAC258182810 /* PoseDetector.swift */,
+				665D29A85919885BD3D47070 /* SceneClassifier.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		E2E16332E552EEA27673C58A /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CA6F64FBA169DEFD3348BAE9 /* CameraParameters.swift */,
+				B477074DC5FAC0604D16CB66 /* PoseTemplate.swift */,
+				180CB06566BB5D9EC89D0727 /* SceneType.swift */,
+				A236F70B23CD37B922016CDC /* ShootingPlan.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E74E91A0B7A3A6EFFDC825B2 = {
+			isa = PBXGroup;
+			children = (
+				61254C63EBB5F19676BC947F /* PoseCoach */,
+				0EE456C25346D66D7A158686 /* PoseCoachTests */,
+				B60D3B1512372B63B221719E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6FAD0B1C540A4CD1C319D6AB /* PoseCoach */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3334BD23E31AA59FCDA6FD1E /* Build configuration list for PBXNativeTarget "PoseCoach" */;
+			buildPhases = (
+				01A07734234592C0DC5C9CA8 /* Sources */,
+				1D501596FA0648729388F69D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PoseCoach;
+			packageProductDependencies = (
+			);
+			productName = PoseCoach;
+			productReference = 690353DC25F2D3BB31DC4585 /* PoseCoach.app */;
+			productType = "com.apple.product-type.application";
+		};
+		8BACD8AEFBBCF22071A10061 /* PoseCoachTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7B01D1A7F788BED083973B3B /* Build configuration list for PBXNativeTarget "PoseCoachTests" */;
+			buildPhases = (
+				1F30ABCBA825E846BE7937FC /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9EF4E53663CF49C829E1865D /* PBXTargetDependency */,
+			);
+			name = PoseCoachTests;
+			packageProductDependencies = (
+			);
+			productName = PoseCoachTests;
+			productReference = D1886822135F07EC52B30518 /* PoseCoachTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		07FABEC937E55E550DF10D21 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					6FAD0B1C540A4CD1C319D6AB = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 56D2FB7DD4F3DAEAE7A3BA2A /* Build configuration list for PBXProject "PoseCoach" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = E74E91A0B7A3A6EFFDC825B2;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B60D3B1512372B63B221719E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6FAD0B1C540A4CD1C319D6AB /* PoseCoach */,
+				8BACD8AEFBBCF22071A10061 /* PoseCoachTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1D501596FA0648729388F69D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A8D7299BD954C1DD09F8A4D /* Assets.xcassets in Resources */,
+				6EB262BDDE504FE8BD8C8136 /* Preview Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		01A07734234592C0DC5C9CA8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1CAD9EF2EA598F903F39D612 /* CameraManager.swift in Sources */,
+				AF8931D6CC4248BEF9CDC44D /* CameraParameters.swift in Sources */,
+				D6E0CF3E90913CA427D77221 /* CameraPermissionManager.swift in Sources */,
+				4A2ACA3B80BFC8FBD23ACE62 /* CameraPreview.swift in Sources */,
+				434EE09AAA12894E0534EC4D /* CompositionAnalyzer.swift in Sources */,
+				0C53A96975847809E9C2A45C /* CompositionOverlay.swift in Sources */,
+				FEBE6DBF93BF188FE8CB77B4 /* Constants.swift in Sources */,
+				BE12C33F8B95D8D657111D62 /* ContentView.swift in Sources */,
+				848C24B7E33D8B892119A633 /* GuideEngine.swift in Sources */,
+				B6E8CB658C11C3D5494D399B /* LightAnalyzer.swift in Sources */,
+				AC762F9BA6FF78407C8313CF /* MainCameraView.swift in Sources */,
+				FFAB41143E50C0CF70DCF775 /* ParameterRecommender.swift in Sources */,
+				121B77E93384BDE86541AEED /* PhotoMatchView.swift in Sources */,
+				3CCED7D7748A5F76866D63A3 /* PoseCoachApp.swift in Sources */,
+				A7D2006819552F324734DDEB /* PoseDetector.swift in Sources */,
+				69365232703A87BC2D4EFE3B /* PoseLibraryView.swift in Sources */,
+				573455F5C525B0230931B244 /* PoseTemplate.swift in Sources */,
+				3EED73F07BDC09C3DFD1059C /* ReferencePhotoAnalyzer.swift in Sources */,
+				CC3604929039DBDA8EDD52F0 /* SceneClassifier.swift in Sources */,
+				9C1DE7E0BCECA17BEB6C9CF5 /* SceneSelectionView.swift in Sources */,
+				55441BD633C992C24D8AADF4 /* SceneType.swift in Sources */,
+				1D9828F8B2AF0AD0FF9C8CC8 /* SettingsView.swift in Sources */,
+				75B1118D78F8FF85815606AD /* ShootingPlan.swift in Sources */,
+				A6A5047F747223BFA5E77FDA /* VoiceCoach.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1F30ABCBA825E846BE7937FC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				67F9815D8D56CB3602BECAE1 /* PoseCoachTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9EF4E53663CF49C829E1865D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6FAD0B1C540A4CD1C319D6AB /* PoseCoach */;
+			targetProxy = 7222FC7D0922C6FF5D428983 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		56917EBED14F67B30921EC29 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = com.posecoach.PoseCoachTests;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PoseCoach.app/PoseCoach";
+			};
+			name = Debug;
+		};
+		6C1CCE008C6313807BE136FC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		8283A566DEBB05005396AD91 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		CD87A0FDBAE8C9B9B930C766 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PoseCoach/Resources/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.posecoach.app;
+				PRODUCT_NAME = PoseCoach;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		D03C4BAC5DE82ED8DC0CEE66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_BUNDLE_IDENTIFIER = com.posecoach.PoseCoachTests;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PoseCoach.app/PoseCoach";
+			};
+			name = Release;
+		};
+		E7114A7F246EAC9717C3F601 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PoseCoach/Resources/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.posecoach.app;
+				PRODUCT_NAME = PoseCoach;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3334BD23E31AA59FCDA6FD1E /* Build configuration list for PBXNativeTarget "PoseCoach" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7114A7F246EAC9717C3F601 /* Debug */,
+				CD87A0FDBAE8C9B9B930C766 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		56D2FB7DD4F3DAEAE7A3BA2A /* Build configuration list for PBXProject "PoseCoach" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C1CCE008C6313807BE136FC /* Debug */,
+				8283A566DEBB05005396AD91 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7B01D1A7F788BED083973B3B /* Build configuration list for PBXNativeTarget "PoseCoachTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				56917EBED14F67B30921EC29 /* Debug */,
+				D03C4BAC5DE82ED8DC0CEE66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 07FABEC937E55E550DF10D21 /* Project object */;
+}

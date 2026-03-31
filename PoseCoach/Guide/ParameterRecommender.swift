@@ -1,6 +1,7 @@
 import Foundation
 
 /// 参数推荐引擎：根据场景+光线组合推荐最佳相机参数
+@MainActor
 struct ParameterRecommender {
 
     /// 根据场景和光线条件生成最佳参数组合

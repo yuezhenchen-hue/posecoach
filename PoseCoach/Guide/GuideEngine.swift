@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AVFoundation
 
 /// 引导引擎：协调所有 AI 模块，生成综合拍摄建议
 @MainActor
@@ -66,7 +67,7 @@ class GuideEngine: ObservableObject {
     private func updateAdvices() {
         var advices: [GuideAdvice] = []
         var readyCount = 0
-        let totalChecks = 4
+        let _ = 4 // totalChecks
 
         // 1. 场景建议
         let scene = sceneClassifier.currentScene

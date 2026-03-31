@@ -3,15 +3,14 @@ import UIKit
 import Combine
 
 /// 相机核心管理器：控制 AVCaptureSession、拍照、参数调整
-@MainActor
 class CameraManager: NSObject, ObservableObject {
-    @Published var isSessionRunning = false
-    @Published var capturedImage: UIImage?
-    @Published var currentExposure: Float = 0.0
-    @Published var isHDREnabled = false
-    @Published var flashMode: AVCaptureDevice.FlashMode = .off
-    @Published var cameraPosition: AVCaptureDevice.Position = .back
-    @Published var error: CameraError?
+    @MainActor @Published var isSessionRunning = false
+    @MainActor @Published var capturedImage: UIImage?
+    @MainActor @Published var currentExposure: Float = 0.0
+    @MainActor @Published var isHDREnabled = false
+    @MainActor @Published var flashMode: AVCaptureDevice.FlashMode = .off
+    @MainActor @Published var cameraPosition: AVCaptureDevice.Position = .back
+    @MainActor @Published var error: CameraError?
 
     let session = AVCaptureSession()
     private var videoDeviceInput: AVCaptureDeviceInput?
@@ -19,7 +18,7 @@ class CameraManager: NSObject, ObservableObject {
     private let videoDataOutput = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.posecoach.camera.session")
 
-    var videoFrameHandler: ((CMSampleBuffer) -> Void)?
+    @MainActor var videoFrameHandler: ((CMSampleBuffer) -> Void)?
 
     // MARK: - Session Lifecycle
 
@@ -33,8 +32,9 @@ class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self, !self.session.isRunning else { return }
             self.session.startRunning()
+            let running = self.session.isRunning
             Task { @MainActor in
-                self.isSessionRunning = self.session.isRunning
+                self.isSessionRunning = running
             }
         }
     }
@@ -55,9 +55,8 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
-        guard let videoDevice = bestCamera(for: cameraPosition),
+        guard let videoDevice = bestCamera(for: .back),
               let input = try? AVCaptureDeviceInput(device: videoDevice) else {
-            Task { @MainActor in self.error = .cameraUnavailable }
             session.commitConfiguration()
             return
         }
@@ -69,7 +68,7 @@ class CameraManager: NSObject, ObservableObject {
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
-            photoOutput.isHighResolutionCaptureEnabled = true
+            photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
         }
 
         videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "com.posecoach.camera.videodata"))
@@ -95,21 +94,21 @@ class CameraManager: NSObject, ObservableObject {
 
     // MARK: - Capture Photo
 
+    @MainActor
     func capturePhoto() {
         let settings = AVCapturePhotoSettings()
         settings.flashMode = flashMode
-
-        if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
-            settings.photoQualityPrioritization = .balanced
-        }
-
+        settings.photoQualityPrioritization = .balanced
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
     // MARK: - Camera Controls
 
+    @MainActor
     func switchCamera() {
-        cameraPosition = (cameraPosition == .back) ? .front : .back
+        let newPosition: AVCaptureDevice.Position = (cameraPosition == .back) ? .front : .back
+        cameraPosition = newPosition
+
         sessionQueue.async { [weak self] in
             guard let self else { return }
             self.session.beginConfiguration()
@@ -118,7 +117,7 @@ class CameraManager: NSObject, ObservableObject {
                 self.session.removeInput(currentInput)
             }
 
-            guard let newDevice = self.bestCamera(for: self.cameraPosition),
+            guard let newDevice = self.bestCamera(for: newPosition),
                   let newInput = try? AVCaptureDeviceInput(device: newDevice) else {
                 self.session.commitConfiguration()
                 return
@@ -133,6 +132,7 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    @MainActor
     func setExposure(_ value: Float) {
         guard let device = videoDeviceInput?.device else { return }
         let clampedValue = max(device.minExposureTargetBias, min(value, device.maxExposureTargetBias))
@@ -142,6 +142,7 @@ class CameraManager: NSObject, ObservableObject {
         currentExposure = clampedValue
     }
 
+    @MainActor
     func setFocusPoint(_ point: CGPoint) {
         guard let device = videoDeviceInput?.device,
               device.isFocusPointOfInterestSupported else { return }
@@ -151,6 +152,7 @@ class CameraManager: NSObject, ObservableObject {
         device.unlockForConfiguration()
     }
 
+    @MainActor
     func applyParameters(_ params: CameraParameters) {
         if let exposure = params.exposureBias {
             setExposure(exposure)
