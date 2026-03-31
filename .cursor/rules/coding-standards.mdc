@@ -1,0 +1,25 @@
+---
+description: PoseCoach 编码规范
+globs:
+alwaysApply: true
+---
+
+# 编码规范
+
+## Swift / iOS
+- 使用 SwiftUI 声明式 UI，不使用 Storyboard
+- 状态管理使用 @StateObject / @ObservableObject / @Published
+- 相机相关使用 AVFoundation 框架
+- AI 分析使用 Apple Vision Framework 和 CoreML
+- 异步操作使用 Swift Concurrency (async/await)
+- 遵循 Apple Human Interface Guidelines
+
+## Python / 后端
+- 使用 FastAPI 异步路由
+- 数据库操作使用 SQLAlchemy 2.0 async
+- 请求/响应模型使用 Pydantic v2
+- API 路径统一使用 /api/v1/ 前缀
+
+## Git
+- 提交信息格式：feat/fix/refactor/docs/test: 中文描述
+- 重要功能完成后更新 PROJECT_CONTEXT.md

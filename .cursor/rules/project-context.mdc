@@ -1,0 +1,32 @@
+---
+description: PoseCoach 项目上下文 - AI 摄影教练 iOS App
+globs:
+alwaysApply: true
+---
+
+# PoseCoach 项目规则
+
+你正在协助开发 **PoseCoach**，一款 iOS AI 摄影教练 App。
+
+## 项目基本信息
+- **GitHub**: https://github.com/yuezhenchen-hue/posecoach
+- **iOS**: Swift 5.9 + SwiftUI + AVFoundation + Vision + CoreML，最低 iOS 17.0
+- **后端**: Python 3.12 + FastAPI + SQLAlchemy 2.0 + SQLite
+- **Bundle ID**: com.posecoach.app
+- **Xcode 项目生成**: 使用 XcodeGen（project.yml），不手写 .xcodeproj
+
+## 核心功能
+1. **智能拍照模式**: 相机实时预览 + 4个AI分析器（场景/光线/姿态/构图）+ 语音引导
+2. **照着拍模式**: 上传参考图 → AI 7维分析 → 分屏对比实时引导
+3. **Pose 灵感库**: 25+ 预置 Pose，按场景/人数/难度筛选
+4. **后端服务**: Pose远程更新、App配置下发、数据统计、内购验证
+
+## 重要约定
+- 所有 AI 处理在设备本地运行（隐私优先）
+- 回复使用中文
+- 每完成重要功能后，更新 PROJECT_CONTEXT.md 的进度部分
+- iOS 代码放 `PoseCoach/` 目录，后端代码放 `backend/` 目录
+- 优先考虑代码可读性和性能
+
+## 详细信息
+如需了解完整的项目架构、目录结构、设计决策和开发进度，请阅读根目录的 `PROJECT_CONTEXT.md`。
