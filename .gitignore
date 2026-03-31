@@ -51,3 +51,18 @@ Secrets/
 
 # Archives
 *.xcarchive
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+*.egg
+venv/
+.venv/
+
+# Backend
+backend/.env
+backend/data/*.db
+backend/data/*.sqlite
