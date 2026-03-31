@@ -2,6 +2,7 @@ import SwiftUI
 
 /// 主拍照视图：整合相机预览、AI 引导覆层、底部控制栏
 struct MainCameraView: View {
+    @EnvironmentObject var appState: AppState
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var guideEngine = GuideEngine()
     @StateObject private var permissionManager = CameraPermissionManager()
@@ -13,14 +14,18 @@ struct MainCameraView: View {
 
     var body: some View {
         ZStack {
-            if permissionManager.cameraPermission == .authorized {
+            if appState.isDemoMode {
+                DemoCameraView()
+            } else if permissionManager.cameraPermission == .authorized {
                 cameraView
             } else {
                 permissionRequestView
             }
         }
         .onAppear {
-            permissionManager.checkPermissions()
+            if !appState.isDemoMode {
+                permissionManager.checkPermissions()
+            }
         }
         .sheet(isPresented: $showSceneSelector) {
             SceneSelectionView(
@@ -40,29 +45,28 @@ struct MainCameraView: View {
 
     private var cameraView: some View {
         ZStack {
-            // 相机预览层
             CameraPreview(session: cameraManager.session) { point in
                 cameraManager.setFocusPoint(point)
             }
             .ignoresSafeArea()
 
-            // 构图参考线
             CompositionOverlay(guide: guideEngine.compositionAnalyzer.selectedGuide)
 
-            // 引导信息覆层
-            VStack {
+            VStack(spacing: 0) {
                 topBar
                 Spacer()
                 guidePanel
                 bottomControls
             }
 
-            // 倒计时显示
             if isCountingDown {
                 Text("\(timerSeconds)")
                     .font(.system(size: 120, weight: .bold))
                     .foregroundStyle(.white.opacity(0.8))
             }
+
+            // 手机移动方向指示器
+            phoneDirectionOverlay
         }
         .onAppear {
             cameraManager.configure()
@@ -84,7 +88,6 @@ struct MainCameraView: View {
 
     private var topBar: some View {
         HStack {
-            // 场景标签
             Button { showSceneSelector = true } label: {
                 HStack(spacing: 6) {
                     Image(systemName: guideEngine.sceneClassifier.currentScene.icon)
@@ -98,21 +101,10 @@ struct MainCameraView: View {
 
             Spacer()
 
-            // 就绪度指示
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(readinessColor)
-                    .frame(width: 10, height: 10)
-                Text(guideEngine.overallReadiness.rawValue)
-                    .font(.caption.bold())
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.ultraThinMaterial, in: Capsule())
+            readinessBadge
 
             Spacer()
 
-            // 语音开关
             Button {
                 guideEngine.voiceCoach.isEnabled.toggle()
             } label: {
@@ -126,6 +118,19 @@ struct MainCameraView: View {
         .padding(.top, 8)
     }
 
+    private var readinessBadge: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(readinessColor)
+                .frame(width: 10, height: 10)
+            Text(guideEngine.overallReadiness.rawValue)
+                .font(.caption.bold())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+    }
+
     private var readinessColor: Color {
         switch guideEngine.overallReadiness {
         case .notReady: return .red
@@ -135,32 +140,144 @@ struct MainCameraView: View {
         }
     }
 
+    // MARK: - Phone Direction Overlay
+
+    /// 屏幕四周的方向箭头指示器
+    private var phoneDirectionOverlay: some View {
+        ZStack {
+            if let movement = guideEngine.phoneMovement {
+                // 左右箭头
+                if movement.horizontal == .moveLeft {
+                    directionArrow(systemName: "chevron.left", alignment: .leading)
+                } else if movement.horizontal == .moveRight {
+                    directionArrow(systemName: "chevron.right", alignment: .trailing)
+                }
+                // 上下箭头
+                if movement.vertical == .moveUp {
+                    directionArrow(systemName: "chevron.up", alignment: .top)
+                } else if movement.vertical == .moveDown {
+                    directionArrow(systemName: "chevron.down", alignment: .bottom)
+                }
+                // 远近提示
+                if movement.distance == .closer {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Label("靠近", systemImage: "arrow.up.right.and.arrow.down.left")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(.orange.opacity(0.85), in: Capsule())
+                                .foregroundStyle(.white)
+                            Spacer()
+                        }
+                        .padding(.bottom, 160)
+                    }
+                } else if movement.distance == .farther {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Label("后退", systemImage: "arrow.down.left.and.arrow.up.right")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(.orange.opacity(0.85), in: Capsule())
+                                .foregroundStyle(.white)
+                            Spacer()
+                        }
+                        .padding(.bottom, 160)
+                    }
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .animation(.easeInOut(duration: 0.3), value: guideEngine.phoneMovement?.horizontal.rawValue)
+        .animation(.easeInOut(duration: 0.3), value: guideEngine.phoneMovement?.vertical.rawValue)
+    }
+
+    private func directionArrow(systemName: String, alignment: Alignment) -> some View {
+        GeometryReader { geo in
+            let size: CGFloat = 40
+            Image(systemName: systemName)
+                .font(.system(size: size, weight: .bold))
+                .foregroundStyle(.orange)
+                .shadow(color: .black.opacity(0.4), radius: 4)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: alignment)
+                .padding(alignment == .leading || alignment == .trailing ? 12 : 0)
+                .padding(alignment == .top ? 80 : 0)
+                .padding(alignment == .bottom ? 160 : 0)
+                .opacity(0.9)
+        }
+    }
+
     // MARK: - Guide Panel
 
     private var guidePanel: some View {
-        VStack(spacing: 8) {
-            ForEach(guideEngine.currentAdvices.prefix(3)) { advice in
-                HStack(spacing: 8) {
-                    Image(systemName: iconForCategory(advice.category))
-                        .foregroundStyle(.orange)
-                        .frame(width: 20)
-                    Text(advice.message)
-                        .font(.caption)
-                        .lineLimit(1)
-                    Spacer()
+        VStack(spacing: 6) {
+            let priorityAdvices = guideEngine.currentAdvices.filter { $0.priority >= 1 && $0.priority <= 4 }
+            let otherAdvices = guideEngine.currentAdvices.filter { $0.priority > 4 }
+
+            if !priorityAdvices.isEmpty {
+                VStack(spacing: 4) {
+                    ForEach(priorityAdvices.prefix(3)) { advice in
+                        adviceRow(advice, highlight: true)
+                    }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
 
-            // 参数推荐卡片
+            if let topOther = otherAdvices.first {
+                adviceRow(topOther, highlight: false)
+            }
+
             if showParameterPanel {
                 parameterCard
             }
         }
         .padding(.horizontal)
         .padding(.bottom, 8)
+    }
+
+    private func adviceRow(_ advice: GuideEngine.GuideAdvice, highlight: Bool) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: advice.icon)
+                .foregroundStyle(highlight ? .orange : .white.opacity(0.7))
+                .frame(width: 22)
+
+            if let dir = advice.direction, dir != .stay {
+                Text(dir.rawValue)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.orange)
+                    .frame(width: 20)
+            }
+
+            Text(advice.message)
+                .font(.caption)
+                .foregroundStyle(.white)
+                .lineLimit(2)
+
+            Spacer()
+
+            Text(advice.category.rawValue)
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.5))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(.white.opacity(0.1), in: Capsule())
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            highlight
+                ? AnyShapeStyle(.orange.opacity(0.15))
+                : AnyShapeStyle(.ultraThinMaterial),
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(highlight ? .orange.opacity(0.3) : .clear, lineWidth: 1)
+        )
     }
 
     private var parameterCard: some View {
@@ -197,22 +314,10 @@ struct MainCameraView: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func iconForCategory(_ category: GuideEngine.GuideAdvice.Category) -> String {
-        switch category {
-        case .scene: return "map.fill"
-        case .light: return "sun.max.fill"
-        case .composition: return "squareshape.split.3x3"
-        case .pose: return "figure.stand"
-        case .parameter: return "camera.aperture"
-        case .creative: return "sparkles"
-        }
-    }
-
     // MARK: - Bottom Controls
 
     private var bottomControls: some View {
         HStack(spacing: 40) {
-            // 参数面板切换
             Button {
                 withAnimation { showParameterPanel.toggle() }
             } label: {
@@ -224,7 +329,6 @@ struct MainCameraView: View {
                 }
             }
 
-            // 快门按钮
             Button {
                 if timerSeconds > 0 {
                     startCountdown()
@@ -242,7 +346,6 @@ struct MainCameraView: View {
                 }
             }
 
-            // 翻转相机
             Button {
                 cameraManager.switchCamera()
             } label: {
@@ -269,7 +372,7 @@ struct MainCameraView: View {
             Text("需要相机权限")
                 .font(.title2.bold())
 
-            Text("PoseCoach 需要访问你的相机\n来提供实时拍照指导")
+            Text("智拍指南需要访问你的相机\n来提供实时拍照指导")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -8,9 +8,9 @@ options:
 
 settings:
   base:
-    SWIFT_VERSION: "6.0"
+    SWIFT_VERSION: "5"
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: 1
+    CURRENT_PROJECT_VERSION: 4
     ALWAYS_SEARCH_USER_PATHS: NO
 
 targets:
@@ -24,7 +24,7 @@ targets:
     settings:
       base:
         INFOPLIST_FILE: PoseCoach/Resources/Info.plist
-        PRODUCT_BUNDLE_IDENTIFIER: com.posecoach.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.yuezhenchen.smartposecam
         PRODUCT_NAME: PoseCoach
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
@@ -36,17 +36,17 @@ targets:
     info:
       path: PoseCoach/Resources/Info.plist
       properties:
-        CFBundleDisplayName: PoseCoach
-        CFBundleName: PoseCoach
+        CFBundleDisplayName: 智拍指南
+        CFBundleName: 智拍指南
         CFBundleShortVersionString: "1.0.0"
         CFBundleVersion: "1"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        NSCameraUsageDescription: "PoseCoach 需要访问相机来提供实时拍照指导，包括构图建议、姿势引导和光线分析"
-        NSPhotoLibraryAddUsageDescription: "PoseCoach 需要保存拍摄的照片到你的相册"
-        NSPhotoLibraryUsageDescription: "PoseCoach 需要访问相册以选择参考照片用于「照着拍」功能"
-        NSMicrophoneUsageDescription: "PoseCoach 可能需要麦克风来录制视频"
+        NSCameraUsageDescription: "智拍指南需要访问相机来提供实时拍照指导，包括构图建议、姿势引导和光线分析"
+        NSPhotoLibraryAddUsageDescription: "智拍指南需要保存拍摄的照片到你的相册"
+        NSPhotoLibraryUsageDescription: "智拍指南需要访问相册以选择参考照片用于「照着拍」功能"
+        NSMicrophoneUsageDescription: "智拍指南可能需要麦克风来录制视频"
 
   PoseCoachTests:
     type: bundle.unit-test

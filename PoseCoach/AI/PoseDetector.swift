@@ -1,12 +1,15 @@
 import Vision
 import UIKit
 
-/// 人体姿态检测器：检测人体关键点，评估姿态质量，推荐 Pose
+/// 人体姿态检测器：检测人体关键点，评估姿态质量，识别主体
 @MainActor
 class PoseDetector: ObservableObject {
     @Published var detectedPose: DetectedPose?
     @Published var personCount: Int = 0
     @Published var personBoundingBox: CGRect = .zero
+    @Published var mainSubjectBox: CGRect = .zero
+    @Published var saliencyRegions: [CGRect] = []
+    @Published var mainSubjectDescription: String = ""
 
     private var lastDetectionTime: Date = .distantPast
     private let detectionInterval: TimeInterval = 0.2
@@ -66,14 +69,31 @@ class PoseDetector: ObservableObject {
     private func performDetection(on handler: VNImageRequestHandler) {
         let poseRequest = VNDetectHumanBodyPoseRequest()
         let personRequest = VNDetectHumanRectanglesRequest()
+        let saliencyRequest = VNGenerateAttentionBasedSaliencyImageRequest()
+        let faceRequest = VNDetectFaceRectanglesRequest()
 
-        try? handler.perform([poseRequest, personRequest])
+        try? handler.perform([poseRequest, personRequest, saliencyRequest, faceRequest])
 
         // 人体矩形检测
+        var allPersonBoxes: [CGRect] = []
         if let personResults = personRequest.results {
             personCount = personResults.count
+            allPersonBoxes = personResults.map { $0.boundingBox }
             personBoundingBox = personResults.first?.boundingBox ?? .zero
         }
+
+        // 注意力显著性检测 — 找到画面中最吸引注意的区域
+        if let saliencyResults = saliencyRequest.results,
+           let saliency = saliencyResults.first {
+            let regions = saliency.salientObjects?.map { $0.boundingBox } ?? []
+            saliencyRegions = regions
+        }
+
+        // 人脸检测 — 辅助确定主角
+        let faceBoxes = faceRequest.results?.map { $0.boundingBox } ?? []
+
+        // 综合判断主体：最大的人 + 人脸朝向镜头 + 显著性区域重叠
+        identifyMainSubject(personBoxes: allPersonBoxes, faceBoxes: faceBoxes)
 
         // 姿态关键点
         guard let poseResults = poseRequest.results, let firstPose = poseResults.first else {
@@ -130,6 +150,62 @@ class PoseDetector: ObservableObject {
         }
 
         return advices
+    }
+
+    /// 综合多种信号识别主体
+    private func identifyMainSubject(personBoxes: [CGRect], faceBoxes: [CGRect]) {
+        guard !personBoxes.isEmpty else {
+            mainSubjectBox = .zero
+            mainSubjectDescription = "未检测到人物"
+            return
+        }
+
+        if personBoxes.count == 1 {
+            mainSubjectBox = personBoxes[0]
+            mainSubjectDescription = "检测到 1 人（主角）"
+            return
+        }
+
+        // 多人场景：评分找出主角
+        var bestScore: CGFloat = -1
+        var bestBox: CGRect = .zero
+
+        for box in personBoxes {
+            var score: CGFloat = 0
+
+            // 面积越大越可能是主角（越靠近镜头）
+            score += box.width * box.height * 100
+
+            // 越靠近画面中心越可能是主角
+            let centerDist = abs(box.midX - 0.5) + abs(box.midY - 0.5)
+            score += max(0, 1.0 - centerDist) * 30
+
+            // 有人脸的更可能是主角
+            for faceBox in faceBoxes {
+                if box.intersects(faceBox) {
+                    score += 50
+                    // 人脸越大越可能是主角
+                    score += faceBox.width * faceBox.height * 80
+                }
+            }
+
+            // 与显著性区域重叠加分
+            for region in saliencyRegions {
+                if box.intersects(region) {
+                    let overlap = box.intersection(region)
+                    score += overlap.width * overlap.height * 60
+                }
+            }
+
+            if score > bestScore {
+                bestScore = score
+                bestBox = box
+            }
+        }
+
+        mainSubjectBox = bestBox
+        let position = bestBox.midX < 0.4 ? "左侧" : (bestBox.midX > 0.6 ? "右侧" : "中间")
+        mainSubjectDescription = "检测到 \(personBoxes.count) 人，主角在画面\(position)"
     }
 }
 

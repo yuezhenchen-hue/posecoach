@@ -19,9 +19,13 @@ class AppState: ObservableObject {
     }
     @Published var guidanceLevel: GuidanceLevel = .beginner
     @Published var isVoiceEnabled: Bool = true
+    @Published var isDemoMode: Bool = false
 
     init() {
         self.isOnboardingComplete = UserDefaults.standard.bool(forKey: "isOnboardingComplete")
+        #if targetEnvironment(simulator)
+        isDemoMode = true
+        #endif
     }
 }
 

@@ -27,6 +27,13 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("开发调试") {
+                    Toggle("Demo 模式", isOn: $appState.isDemoMode)
+                    Text("Demo 模式使用生成的场景图片模拟相机，可在模拟器上测试 AI 分析功能")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("关于") {
                     HStack {
                         Text("版本")
@@ -42,8 +49,11 @@ struct SettingsView: View {
 
                 Section {
                     VStack(spacing: 8) {
-                        Text("PoseCoach")
+                        Text("智拍指南")
                             .font(.headline)
+                        Text("Smart Pose & Cam")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                         Text("AI 摄影教练 · 让每个人都能拍出好照片")
                             .font(.caption)
                             .foregroundStyle(.secondary)

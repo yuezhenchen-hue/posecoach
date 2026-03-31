@@ -1,4 +1,4 @@
-import AVFoundation
+@preconcurrency import AVFoundation
 import UIKit
 import Combine
 
@@ -18,7 +18,7 @@ class CameraManager: NSObject, ObservableObject {
     private let videoDataOutput = AVCaptureVideoDataOutput()
     private let sessionQueue = DispatchQueue(label: "com.posecoach.camera.session")
 
-    @MainActor var videoFrameHandler: ((CMSampleBuffer) -> Void)?
+    nonisolated(unsafe) var videoFrameHandler: ((CMSampleBuffer) -> Void)?
 
     // MARK: - Session Lifecycle
 
@@ -170,9 +170,7 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
-        Task { @MainActor in
-            videoFrameHandler?(sampleBuffer)
-        }
+        videoFrameHandler?(sampleBuffer)
     }
 }
 
@@ -184,11 +182,11 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        guard let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data) else { return }
+        guard let data = photo.fileDataRepresentation() else { return }
 
-        Task { @MainActor in
-            self.capturedImage = image
+        Task { @MainActor [weak self] in
+            guard let image = UIImage(data: data) else { return }
+            self?.capturedImage = image
             UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
         }
     }
