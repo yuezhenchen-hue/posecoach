@@ -197,16 +197,7 @@ struct DemoCameraView: View {
     }
 
     private func iconForCategory(_ category: GuideEngine.GuideAdvice.Category) -> String {
-        switch category {
-        case .scene: return "map.fill"
-        case .light: return "sun.max.fill"
-        case .composition: return "squareshape.split.3x3"
-        case .pose: return "figure.stand"
-        case .parameter: return "camera.aperture"
-        case .creative: return "sparkles"
-        case .phonePosition: return "iphone.gen3"
-        case .subjectPosition: return "person.fill.viewfinder"
-        }
+        return category.defaultIcon
     }
 
     // MARK: - Scenario Switcher

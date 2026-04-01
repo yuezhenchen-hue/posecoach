@@ -8,6 +8,7 @@ struct MainCameraView: View {
     @StateObject private var permissionManager = CameraPermissionManager()
     @State private var showSceneSelector = false
     @State private var showParameterPanel = false
+    @State private var showHarmonyDetail = false
     @State private var showCapturedPhoto = false
     @State private var timerSeconds: Int = 0
     @State private var isCountingDown = false
@@ -39,6 +40,12 @@ struct MainCameraView: View {
                 CapturedPhotoView(image: image)
             }
         }
+        .sheet(isPresented: $showHarmonyDetail) {
+            if let harmony = guideEngine.compositionAnalyzer.harmonyScore {
+                HarmonyDetailSheet(harmony: harmony)
+                    .presentationDetents([.medium])
+            }
+        }
     }
 
     // MARK: - Camera View
@@ -47,10 +54,13 @@ struct MainCameraView: View {
         ZStack {
             CameraPreview(session: cameraManager.session) { point in
                 cameraManager.setFocusPoint(point)
+                guideEngine.setManualSubject(normalizedPoint: point)
             }
             .ignoresSafeArea()
 
             CompositionOverlay(guide: guideEngine.compositionAnalyzer.selectedGuide)
+
+            subjectHighlight
 
             VStack(spacing: 0) {
                 topBar
@@ -65,7 +75,6 @@ struct MainCameraView: View {
                     .foregroundStyle(.white.opacity(0.8))
             }
 
-            // 手机移动方向指示器
             phoneDirectionOverlay
         }
         .onAppear {
@@ -81,6 +90,53 @@ struct MainCameraView: View {
         }
         .onChange(of: cameraManager.capturedImage) { _, newImage in
             if newImage != nil { showCapturedPhoto = true }
+        }
+    }
+
+    // MARK: - Subject Highlight
+
+    private var subjectHighlight: some View {
+        GeometryReader { geo in
+            let box = guideEngine.subjectDetector.subjectBox
+            let subjectType = guideEngine.subjectDetector.subjectType
+
+            if box != .zero && subjectType != .none {
+                let rect = CGRect(
+                    x: box.minX * geo.size.width,
+                    y: (1 - box.maxY) * geo.size.height,
+                    width: box.width * geo.size.width,
+                    height: box.height * geo.size.height
+                )
+                let color = highlightColor(for: subjectType)
+
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(color, lineWidth: 2)
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
+
+                HStack(spacing: 4) {
+                    Image(systemName: subjectType.icon)
+                        .font(.system(size: 10))
+                    Text(subjectType.rawValue)
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 3)
+                .background(color.opacity(0.8), in: Capsule())
+                .position(x: rect.midX, y: rect.minY - 12)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func highlightColor(for type: SubjectDetector.SubjectType) -> Color {
+        switch type {
+        case .person, .multiplePeople: return .green
+        case .object: return .cyan
+        case .scene: return .blue
+        case .manualFocus: return .orange
+        case .none: return .clear
         }
     }
 
@@ -101,7 +157,7 @@ struct MainCameraView: View {
 
             Spacer()
 
-            readinessBadge
+            harmonyBadge
 
             Spacer()
 
@@ -118,17 +174,39 @@ struct MainCameraView: View {
         .padding(.top, 8)
     }
 
-    private var readinessBadge: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(readinessColor)
-                .frame(width: 10, height: 10)
-            Text(guideEngine.overallReadiness.rawValue)
-                .font(.caption.bold())
+    /// 协调性评分徽章（替代原来单纯的就绪度）
+    private var harmonyBadge: some View {
+        Button { showHarmonyDetail = true } label: {
+            HStack(spacing: 6) {
+                if let harmony = guideEngine.compositionAnalyzer.harmonyScore {
+                    Circle()
+                        .fill(harmonyColor(harmony.level))
+                        .frame(width: 10, height: 10)
+                    Text("\(harmony.total)分")
+                        .font(.caption.bold())
+                    Text(harmony.level.rawValue)
+                        .font(.system(size: 10))
+                } else {
+                    Circle()
+                        .fill(readinessColor)
+                        .frame(width: 10, height: 10)
+                    Text(guideEngine.overallReadiness.rawValue)
+                        .font(.caption.bold())
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
+    }
+
+    private func harmonyColor(_ level: CompositionAnalyzer.HarmonyScore.HarmonyLevel) -> Color {
+        switch level {
+        case .excellent: return .green
+        case .good: return .blue
+        case .fair: return .orange
+        case .poor: return .red
+        }
     }
 
     private var readinessColor: Color {
@@ -142,53 +220,23 @@ struct MainCameraView: View {
 
     // MARK: - Phone Direction Overlay
 
-    /// 屏幕四周的方向箭头指示器
     private var phoneDirectionOverlay: some View {
         ZStack {
             if let movement = guideEngine.phoneMovement {
-                // 左右箭头
                 if movement.horizontal == .moveLeft {
                     directionArrow(systemName: "chevron.left", alignment: .leading)
                 } else if movement.horizontal == .moveRight {
                     directionArrow(systemName: "chevron.right", alignment: .trailing)
                 }
-                // 上下箭头
                 if movement.vertical == .moveUp {
                     directionArrow(systemName: "chevron.up", alignment: .top)
                 } else if movement.vertical == .moveDown {
                     directionArrow(systemName: "chevron.down", alignment: .bottom)
                 }
-                // 远近提示
                 if movement.distance == .closer {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Label("靠近", systemImage: "arrow.up.right.and.arrow.down.left")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(.orange.opacity(0.85), in: Capsule())
-                                .foregroundStyle(.white)
-                            Spacer()
-                        }
-                        .padding(.bottom, 160)
-                    }
+                    distancePill(text: "靠近", icon: "arrow.up.right.and.arrow.down.left")
                 } else if movement.distance == .farther {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Label("后退", systemImage: "arrow.down.left.and.arrow.up.right")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(.orange.opacity(0.85), in: Capsule())
-                                .foregroundStyle(.white)
-                            Spacer()
-                        }
-                        .padding(.bottom, 160)
-                    }
+                    distancePill(text: "后退", icon: "arrow.down.left.and.arrow.up.right")
                 }
             }
         }
@@ -199,9 +247,8 @@ struct MainCameraView: View {
 
     private func directionArrow(systemName: String, alignment: Alignment) -> some View {
         GeometryReader { geo in
-            let size: CGFloat = 40
             Image(systemName: systemName)
-                .font(.system(size: size, weight: .bold))
+                .font(.system(size: 40, weight: .bold))
                 .foregroundStyle(.orange)
                 .shadow(color: .black.opacity(0.4), radius: 4)
                 .frame(width: geo.size.width, height: geo.size.height, alignment: alignment)
@@ -209,6 +256,19 @@ struct MainCameraView: View {
                 .padding(alignment == .top ? 80 : 0)
                 .padding(alignment == .bottom ? 160 : 0)
                 .opacity(0.9)
+        }
+    }
+
+    private func distancePill(text: String, icon: String) -> some View {
+        VStack {
+            Spacer()
+            Label(text, systemImage: icon)
+                .font(.caption.bold())
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.orange.opacity(0.85), in: Capsule())
+                .foregroundStyle(.white)
+                .padding(.bottom, 160)
         }
     }
 
@@ -400,6 +460,97 @@ struct MainCameraView: View {
                 cameraManager.capturePhoto()
             }
         }
+    }
+}
+
+// MARK: - Harmony Detail Sheet
+
+struct HarmonyDetailSheet: View {
+    let harmony: CompositionAnalyzer.HarmonyScore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    totalScoreRing
+
+                    ForEach(harmony.details) { detail in
+                        detailRow(detail)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("构图协调性")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var totalScoreRing: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .stroke(.gray.opacity(0.2), lineWidth: 8)
+                    .frame(width: 100, height: 100)
+                Circle()
+                    .trim(from: 0, to: CGFloat(harmony.total) / 100.0)
+                    .stroke(scoreColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .frame(width: 100, height: 100)
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 2) {
+                    Text("\(harmony.total)")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                    Text("/ 100")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(harmony.level.rawValue)
+                .font(.headline)
+                .foregroundStyle(scoreColor)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var scoreColor: Color {
+        switch harmony.level {
+        case .excellent: return .green
+        case .good: return .blue
+        case .fair: return .orange
+        case .poor: return .red
+        }
+    }
+
+    private func detailRow(_ detail: CompositionAnalyzer.HarmonyScore.HarmonyDetail) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: detail.icon)
+                    .foregroundStyle(.orange)
+                    .frame(width: 24)
+                Text(detail.name)
+                    .font(.subheadline.bold())
+                Spacer()
+                Text("\(detail.score)/\(detail.maxScore)")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(detail.score >= detail.maxScore / 2 ? .green : .orange)
+            }
+
+            ProgressView(value: Double(detail.score), total: Double(detail.maxScore))
+                .tint(detail.score >= detail.maxScore / 2 ? .green : .orange)
+
+            if let suggestion = detail.suggestion {
+                Text(suggestion)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
