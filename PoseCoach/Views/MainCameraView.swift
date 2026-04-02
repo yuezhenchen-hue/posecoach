@@ -12,6 +12,7 @@ struct MainCameraView: View {
     @State private var showCapturedPhoto = false
     @State private var timerSeconds: Int = 0
     @State private var isCountingDown = false
+    @State private var showZoomSlider = false
 
     var body: some View {
         ZStack {
@@ -52,20 +53,40 @@ struct MainCameraView: View {
 
     private var cameraView: some View {
         ZStack {
-            CameraPreview(session: cameraManager.session) { point in
-                cameraManager.setFocusPoint(point)
-                guideEngine.setManualSubject(normalizedPoint: point)
-            }
+            CameraPreview(
+                session: cameraManager.session,
+                onTapFocus: { point in
+                    cameraManager.setFocusPoint(point)
+                    guideEngine.setManualSubject(normalizedPoint: point)
+                },
+                onPinchBegan: {
+                    cameraManager.beginPinchZoom()
+                },
+                onPinchChanged: { scale in
+                    cameraManager.updatePinchZoom(scale: scale)
+                    withAnimation { showZoomSlider = true }
+                }
+            )
             .ignoresSafeArea()
 
             CompositionOverlay(guide: guideEngine.compositionAnalyzer.selectedGuide)
-
             subjectHighlight
 
             VStack(spacing: 0) {
                 topBar
                 Spacer()
+
+                if showZoomSlider {
+                    zoomControl
+                }
+
                 guidePanel
+
+                if showParameterPanel {
+                    cameraParameterPanel
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+
                 bottomControls
             }
 
@@ -161,12 +182,24 @@ struct MainCameraView: View {
 
             Spacer()
 
-            Button {
-                guideEngine.voiceCoach.isEnabled.toggle()
-            } label: {
-                Image(systemName: guideEngine.voiceCoach.isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                    .padding(10)
-                    .background(.ultraThinMaterial, in: Circle())
+            HStack(spacing: 12) {
+                // 闪光灯
+                Button {
+                    cameraManager.cycleFlashMode()
+                } label: {
+                    Image(systemName: flashIcon)
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+
+                // 语音
+                Button {
+                    guideEngine.voiceCoach.isEnabled.toggle()
+                } label: {
+                    Image(systemName: guideEngine.voiceCoach.isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                        .padding(10)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
             }
         }
         .foregroundStyle(.white)
@@ -174,7 +207,15 @@ struct MainCameraView: View {
         .padding(.top, 8)
     }
 
-    /// 协调性评分徽章（替代原来单纯的就绪度）
+    private var flashIcon: String {
+        switch cameraManager.flashMode {
+        case .off: return "bolt.slash.fill"
+        case .auto: return "bolt.badge.automatic.fill"
+        case .on: return "bolt.fill"
+        @unknown default: return "bolt.slash.fill"
+        }
+    }
+
     private var harmonyBadge: some View {
         Button { showHarmonyDetail = true } label: {
             HStack(spacing: 6) {
@@ -215,6 +256,235 @@ struct MainCameraView: View {
         case .almostReady: return .yellow
         case .ready: return .green
         case .perfect: return .blue
+        }
+    }
+
+    // MARK: - Zoom Control
+
+    private var zoomControl: some View {
+        HStack(spacing: 12) {
+            // 常用焦距快捷按钮
+            ForEach([1.0, 2.0, 5.0], id: \.self) { factor in
+                if factor <= cameraManager.maxZoom {
+                    Button {
+                        withAnimation { cameraManager.setZoom(factor) }
+                    } label: {
+                        Text(factor == 1.0 ? "1x" : "\(Int(factor))x")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(isActiveZoom(factor) ? .black : .white)
+                            .frame(width: 36, height: 36)
+                            .background(isActiveZoom(factor) ? .orange : .white.opacity(0.2), in: Circle())
+                    }
+                }
+            }
+
+            // 缩放滑块
+            Slider(
+                value: Binding(
+                    get: { cameraManager.currentZoom },
+                    set: { cameraManager.setZoom($0) }
+                ),
+                in: cameraManager.minZoom...cameraManager.maxZoom
+            )
+            .tint(.orange)
+
+            Text(String(format: "%.1fx", cameraManager.currentZoom))
+                .font(.caption.bold())
+                .foregroundStyle(.orange)
+                .frame(width: 40)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal)
+        .padding(.bottom, 4)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation { showZoomSlider = false }
+            }
+        }
+    }
+
+    private func isActiveZoom(_ target: CGFloat) -> Bool {
+        abs(cameraManager.currentZoom - target) < 0.3
+    }
+
+    // MARK: - Camera Parameter Panel
+
+    private var cameraParameterPanel: some View {
+        VStack(spacing: 12) {
+            // 曝光
+            parameterSlider(
+                icon: "sun.max.fill",
+                label: "曝光",
+                value: Binding(
+                    get: { cameraManager.currentExposure },
+                    set: { cameraManager.setExposure($0) }
+                ),
+                range: cameraManager.minExposure...cameraManager.maxExposure,
+                displayText: String(format: "%+.1f EV", cameraManager.currentExposure)
+            )
+
+            // ISO
+            HStack(spacing: 8) {
+                Image(systemName: "camera.aperture")
+                    .foregroundStyle(.orange)
+                    .frame(width: 22)
+                Text("ISO")
+                    .font(.caption)
+                    .frame(width: 30, alignment: .leading)
+
+                if cameraManager.isAutoISO {
+                    Text("自动")
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button("手动") {
+                        cameraManager.setISO(cameraManager.currentISO)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.15), in: Capsule())
+                } else {
+                    Slider(
+                        value: Binding(
+                            get: { cameraManager.currentISO },
+                            set: { cameraManager.setISO($0) }
+                        ),
+                        in: cameraManager.minISO...cameraManager.maxISO
+                    )
+                    .tint(.orange)
+                    Text("\(Int(cameraManager.currentISO))")
+                        .font(.caption.bold())
+                        .frame(width: 44)
+                    Button {
+                        cameraManager.setAutoISO()
+                    } label: {
+                        Text("自动")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.orange, in: Capsule())
+                    }
+                }
+            }
+
+            // 白平衡
+            HStack(spacing: 8) {
+                Image(systemName: "thermometer.medium")
+                    .foregroundStyle(.orange)
+                    .frame(width: 22)
+                Text("色温")
+                    .font(.caption)
+                    .frame(width: 30, alignment: .leading)
+
+                if cameraManager.isAutoWhiteBalance {
+                    Text("自动")
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                    Spacer()
+                    Button("手动") {
+                        cameraManager.setWhiteBalanceTemperature(5500)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.15), in: Capsule())
+                } else {
+                    Slider(
+                        value: Binding(
+                            get: { cameraManager.whiteBalanceTemperature },
+                            set: { cameraManager.setWhiteBalanceTemperature($0) }
+                        ),
+                        in: 2000...10000
+                    )
+                    .tint(
+                        LinearGradient(colors: [.blue, .white, .orange], startPoint: .leading, endPoint: .trailing)
+                    )
+                    Text("\(Int(cameraManager.whiteBalanceTemperature))K")
+                        .font(.caption.bold())
+                        .frame(width: 48)
+                    Button {
+                        cameraManager.setAutoWhiteBalance()
+                    } label: {
+                        Text("自动")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(.orange, in: Capsule())
+                    }
+                }
+            }
+
+            // HDR + 一键AI推荐 + 还原
+            HStack(spacing: 12) {
+                Toggle(isOn: Binding(
+                    get: { cameraManager.isHDREnabled },
+                    set: { cameraManager.isHDREnabled = $0 }
+                )) {
+                    Label("HDR", systemImage: "camera.filters")
+                        .font(.caption)
+                }
+                .toggleStyle(.button)
+                .tint(.orange)
+
+                Spacer()
+
+                Button {
+                    let params = ParameterRecommender.recommend(
+                        scene: guideEngine.sceneClassifier.currentScene,
+                        lightAnalyzer: guideEngine.lightAnalyzer
+                    )
+                    cameraManager.applyParameters(params)
+                } label: {
+                    Label("AI推荐", systemImage: "wand.and.stars")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(.orange, in: Capsule())
+                }
+
+                Button {
+                    cameraManager.resetAllParameters()
+                } label: {
+                    Label("还原", systemImage: "arrow.counterclockwise")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.white.opacity(0.15), in: Capsule())
+                }
+            }
+        }
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
+        .padding(.bottom, 4)
+    }
+
+    private func parameterSlider(
+        icon: String, label: String,
+        value: Binding<Float>, range: ClosedRange<Float>,
+        displayText: String
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(.orange)
+                .frame(width: 22)
+            Text(label)
+                .font(.caption)
+                .frame(width: 30, alignment: .leading)
+            Slider(value: value, in: range)
+                .tint(.orange)
+            Text(displayText)
+                .font(.caption.bold())
+                .frame(width: 52, alignment: .trailing)
         }
     }
 
@@ -290,13 +560,9 @@ struct MainCameraView: View {
             if let topOther = otherAdvices.first {
                 adviceRow(topOther, highlight: false)
             }
-
-            if showParameterPanel {
-                parameterCard
-            }
         }
         .padding(.horizontal)
-        .padding(.bottom, 8)
+        .padding(.bottom, 4)
     }
 
     private func adviceRow(_ advice: GuideEngine.GuideAdvice, highlight: Bool) -> some View {
@@ -340,55 +606,25 @@ struct MainCameraView: View {
         )
     }
 
-    private var parameterCard: some View {
-        let params = guideEngine.lightAnalyzer.recommendParameters()
-        return VStack(spacing: 8) {
-            ForEach(params.displayItems) { item in
-                HStack {
-                    Image(systemName: item.icon)
-                        .foregroundStyle(.orange)
-                    Text(item.name)
-                        .font(.caption)
-                    Spacer()
-                    Text(item.value)
-                        .font(.caption.bold())
-                }
-            }
-
-            Button {
-                let params = ParameterRecommender.recommend(
-                    scene: guideEngine.sceneClassifier.currentScene,
-                    lightAnalyzer: guideEngine.lightAnalyzer
-                )
-                cameraManager.applyParameters(params)
-            } label: {
-                Text("一键应用推荐参数")
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(.orange, in: RoundedRectangle(cornerRadius: 8))
-            }
-        }
-        .padding(12)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-    }
-
     // MARK: - Bottom Controls
 
     private var bottomControls: some View {
         HStack(spacing: 40) {
+            // 参数面板
             Button {
-                withAnimation { showParameterPanel.toggle() }
+                withAnimation(.easeInOut(duration: 0.25)) { showParameterPanel.toggle() }
             } label: {
                 VStack(spacing: 4) {
-                    Image(systemName: "slider.horizontal.3")
+                    Image(systemName: showParameterPanel ? "slider.horizontal.3" : "slider.horizontal.3")
                         .font(.title3)
+                        .foregroundStyle(showParameterPanel ? .orange : .white)
                     Text("参数")
                         .font(.caption2)
+                        .foregroundStyle(showParameterPanel ? .orange : .white)
                 }
             }
 
+            // 快门
             Button {
                 if timerSeconds > 0 {
                     startCountdown()
@@ -406,6 +642,7 @@ struct MainCameraView: View {
                 }
             }
 
+            // 翻转
             Button {
                 cameraManager.switchCamera()
             } label: {
@@ -474,7 +711,6 @@ struct HarmonyDetailSheet: View {
             ScrollView {
                 VStack(spacing: 16) {
                     totalScoreRing
-
                     ForEach(harmony.details) { detail in
                         detailRow(detail)
                     }
@@ -539,10 +775,8 @@ struct HarmonyDetailSheet: View {
                     .font(.subheadline.bold())
                     .foregroundStyle(detail.score >= detail.maxScore / 2 ? .green : .orange)
             }
-
             ProgressView(value: Double(detail.score), total: Double(detail.maxScore))
                 .tint(detail.score >= detail.maxScore / 2 ? .green : .orange)
-
             if let suggestion = detail.suggestion {
                 Text(suggestion)
                     .font(.caption)

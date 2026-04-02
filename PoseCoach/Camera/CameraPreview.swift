@@ -5,15 +5,23 @@ import AVFoundation
 struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
     var onTapFocus: ((CGPoint) -> Void)?
+    var onPinchBegan: (() -> Void)?
+    var onPinchChanged: ((CGFloat) -> Void)?
 
     func makeUIView(context: Context) -> CameraPreviewUIView {
         let view = CameraPreviewUIView()
         view.session = session
         view.onTapFocus = onTapFocus
+        view.onPinchBegan = onPinchBegan
+        view.onPinchChanged = onPinchChanged
         return view
     }
 
-    func updateUIView(_ uiView: CameraPreviewUIView, context: Context) {}
+    func updateUIView(_ uiView: CameraPreviewUIView, context: Context) {
+        uiView.onTapFocus = onTapFocus
+        uiView.onPinchBegan = onPinchBegan
+        uiView.onPinchChanged = onPinchChanged
+    }
 }
 
 class CameraPreviewUIView: UIView {
@@ -21,6 +29,8 @@ class CameraPreviewUIView: UIView {
         didSet { previewLayer.session = session }
     }
     var onTapFocus: ((CGPoint) -> Void)?
+    var onPinchBegan: (() -> Void)?
+    var onPinchChanged: ((CGFloat) -> Void)?
 
     private var previewLayer: AVCaptureVideoPreviewLayer {
         layer as! AVCaptureVideoPreviewLayer
@@ -49,6 +59,9 @@ class CameraPreviewUIView: UIView {
     private func setupGestures() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         addGestureRecognizer(tapGesture)
+
+        let pinchGesture = UIPinchGestureRecognizer(target: self, action: #selector(handlePinch))
+        addGestureRecognizer(pinchGesture)
     }
 
     @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -56,6 +69,17 @@ class CameraPreviewUIView: UIView {
         let point = previewLayer.captureDevicePointConverted(fromLayerPoint: location)
         onTapFocus?(point)
         showFocusIndicator(at: location)
+    }
+
+    @objc private func handlePinch(_ gesture: UIPinchGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            onPinchBegan?()
+        case .changed:
+            onPinchChanged?(gesture.scale)
+        default:
+            break
+        }
     }
 
     private func showFocusIndicator(at point: CGPoint) {
