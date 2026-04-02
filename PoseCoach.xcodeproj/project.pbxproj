@@ -23,6 +23,7 @@
 		6EB262BDDE504FE8BD8C8136 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DFE5884C521FA8C890B711D4 /* Preview Assets.xcassets */; };
 		75B1118D78F8FF85815606AD /* ShootingPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A236F70B23CD37B922016CDC /* ShootingPlan.swift */; };
 		767361EF3EC974F081C4EAAA /* DemoCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0949FB2F3024431735582E05 /* DemoCameraView.swift */; };
+		7801889CBB906C4CDCF8C71F /* ImageEnhancer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C1587ED3BCE7C63B510A37 /* ImageEnhancer.swift */; };
 		848C24B7E33D8B892119A633 /* GuideEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7B4E3330B2BAD0CD0C04A5 /* GuideEngine.swift */; };
 		9C1DE7E0BCECA17BEB6C9CF5 /* SceneSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */; };
 		A6A5047F747223BFA5E77FDA /* VoiceCoach.swift in Sources */ = {isa = PBXBuildFile; fileRef = 550FD114A55524388D95EC34 /* VoiceCoach.swift */; };
@@ -34,6 +35,7 @@
 		C16CAAF09F1CE0AB6B64CD23 /* SubjectDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892F1161DE8E796D14FFA1E0 /* SubjectDetector.swift */; };
 		CC3604929039DBDA8EDD52F0 /* SceneClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 665D29A85919885BD3D47070 /* SceneClassifier.swift */; };
 		D6E0CF3E90913CA427D77221 /* CameraPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E7D736F7C2946C391C111CB /* CameraPermissionManager.swift */; };
+		E256539AF77ECB55CDA1088E /* LevelIndicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F13CD2D4C55E34535FCD142A /* LevelIndicator.swift */; };
 		F1ABDCCFF785BA7A4DC9D6DA /* DemoImageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2003FF3E220411BA9400E177 /* DemoImageProvider.swift */; };
 		FEBE6DBF93BF188FE8CB77B4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A9BF25E8789284063969E3 /* Constants.swift */; };
 		FFAB41143E50C0CF70DCF775 /* ParameterRecommender.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC66BB0C8552219D2A050C64 /* ParameterRecommender.swift */; };
@@ -65,6 +67,7 @@
 		690353DC25F2D3BB31DC4585 /* PoseCoach.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PoseCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D6849D620A889986862D18F /* CompositionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositionOverlay.swift; sourceTree = "<group>"; };
 		892F1161DE8E796D14FFA1E0 /* SubjectDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubjectDetector.swift; sourceTree = "<group>"; };
+		99C1587ED3BCE7C63B510A37 /* ImageEnhancer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageEnhancer.swift; sourceTree = "<group>"; };
 		9C7B4E3330B2BAD0CD0C04A5 /* GuideEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuideEngine.swift; sourceTree = "<group>"; };
 		A07155F90FBFCD1FA5DFF911 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A236F70B23CD37B922016CDC /* ShootingPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShootingPlan.swift; sourceTree = "<group>"; };
@@ -80,6 +83,7 @@
 		E76EFE05975DCF974AAC2DCE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneSelectionView.swift; sourceTree = "<group>"; };
 		EC66BB0C8552219D2A050C64 /* ParameterRecommender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParameterRecommender.swift; sourceTree = "<group>"; };
+		F13CD2D4C55E34535FCD142A /* LevelIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelIndicator.swift; sourceTree = "<group>"; };
 		FAE9F0A79D6C1267E3F1C6FA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FAF2F5B10F0EEB4BEE85DBD6 /* LightAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LightAnalyzer.swift; sourceTree = "<group>"; };
 		FF27EF32E718C0FE209F1968 /* MainCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCameraView.swift; sourceTree = "<group>"; };
@@ -107,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				7D6849D620A889986862D18F /* CompositionOverlay.swift */,
+				F13CD2D4C55E34535FCD142A /* LevelIndicator.swift */,
 				FF27EF32E718C0FE209F1968 /* MainCameraView.swift */,
 				1F857C991803B54B1FAD8B9D /* PoseLibraryView.swift */,
 				E94FE4884951E3124A5E01BD /* SceneSelectionView.swift */,
@@ -209,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				DFB45A27EAB2C31D05B07963 /* CompositionAnalyzer.swift */,
+				99C1587ED3BCE7C63B510A37 /* ImageEnhancer.swift */,
 				FAF2F5B10F0EEB4BEE85DBD6 /* LightAnalyzer.swift */,
 				3B0DCAE6EA3FEAC258182810 /* PoseDetector.swift */,
 				665D29A85919885BD3D47070 /* SceneClassifier.swift */,
@@ -339,6 +345,8 @@
 				767361EF3EC974F081C4EAAA /* DemoCameraView.swift in Sources */,
 				F1ABDCCFF785BA7A4DC9D6DA /* DemoImageProvider.swift in Sources */,
 				848C24B7E33D8B892119A633 /* GuideEngine.swift in Sources */,
+				7801889CBB906C4CDCF8C71F /* ImageEnhancer.swift in Sources */,
+				E256539AF77ECB55CDA1088E /* LevelIndicator.swift in Sources */,
 				B6E8CB658C11C3D5494D399B /* LightAnalyzer.swift in Sources */,
 				AC762F9BA6FF78407C8313CF /* MainCameraView.swift in Sources */,
 				FFAB41143E50C0CF70DCF775 /* ParameterRecommender.swift in Sources */,
@@ -389,7 +397,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0.0;
 				SDKROOT = iphoneos;
@@ -401,7 +409,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0.0;
 				SDKROOT = iphoneos;
