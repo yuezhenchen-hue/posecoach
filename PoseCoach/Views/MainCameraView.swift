@@ -10,7 +10,7 @@ struct MainCameraView: View {
     @State private var showSceneSelector = false
     @State private var showParameterPanel = false
     @State private var showHarmonyDetail = false
-    @State private var showCapturedPhoto = false
+    @State private var presentedPhoto: CapturedPhoto?
     @State private var showZoomSlider = false
     @State private var showLevelIndicator = false
     @State private var timerSeconds: Int = 0
@@ -36,10 +36,8 @@ struct MainCameraView: View {
             )
             .presentationDetents([.medium])
         }
-        .sheet(isPresented: $showCapturedPhoto) {
-            if let image = cameraManager.capturedImage {
-                CapturedPhotoView(image: image)
-            }
+        .sheet(item: $presentedPhoto) { photo in
+            CapturedPhotoView(image: photo.image)
         }
         .sheet(isPresented: $showHarmonyDetail) {
             if let harmony = guideEngine.compositionAnalyzer.harmonyScore {
@@ -113,15 +111,21 @@ struct MainCameraView: View {
             cameraManager.configure()
             cameraManager.startSession()
             motionManager.start()
-            cameraManager.videoFrameHandler = { buffer in guideEngine.processFrame(buffer) }
+            cameraManager.videoFrameHandler = { [weak guideEngine] buffer in
+                DispatchQueue.main.async {
+                    guideEngine?.processFrame(buffer)
+                }
+            }
         }
         .onDisappear {
             cameraManager.stopSession()
             motionManager.stop()
             guideEngine.voiceCoach.stop()
         }
-        .onChange(of: cameraManager.capturedImage) { _, newImage in
-            if newImage != nil { showCapturedPhoto = true }
+        .onChange(of: cameraManager.capturedPhoto?.id) { _, newID in
+            if newID != nil {
+                presentedPhoto = cameraManager.capturedPhoto
+            }
         }
     }
 
@@ -590,9 +594,16 @@ struct MainCameraView: View {
     private func startCountdown() {
         isCountingDown = true
         var remaining = timerSeconds
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            remaining -= 1; timerSeconds = remaining
-            if remaining <= 0 { timer.invalidate(); isCountingDown = false; cameraManager.capturePhoto() }
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] timer in
+            remaining -= 1
+            Task { @MainActor in
+                timerSeconds = remaining
+                if remaining <= 0 {
+                    timer.invalidate()
+                    isCountingDown = false
+                    cameraManager.capturePhoto()
+                }
+            }
         }
     }
 }
@@ -656,6 +667,8 @@ struct HarmonyDetailSheet: View {
 struct CapturedPhotoView: View {
     let image: UIImage
     @Environment(\.dismiss) private var dismiss
+    @State private var isProcessing = false
+    @State private var statusMessage = "已保存到相册"
 
     var body: some View {
         NavigationStack {
@@ -663,34 +676,53 @@ struct CapturedPhotoView: View {
                 Image(uiImage: image).resizable().scaledToFit()
                     .clipShape(RoundedRectangle(cornerRadius: 16)).padding()
 
-                HStack(spacing: 16) {
-                    Button {
-                        let enhanced = ImageEnhancer.autoEnhance(image)
-                        UIImageWriteToSavedPhotosAlbum(enhanced, nil, nil, nil)
-                    } label: {
-                        Label("AI优化", systemImage: "wand.and.stars")
-                            .font(.caption.bold())
-                            .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(.orange, in: Capsule())
-                            .foregroundStyle(.white)
+                if isProcessing {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text(statusMessage).font(.caption).foregroundStyle(.secondary)
                     }
+                } else {
+                    HStack(spacing: 16) {
+                        Button {
+                            enhanceAndSave("AI优化中...") { ImageEnhancer.autoEnhance(image) }
+                        } label: {
+                            Label("AI优化", systemImage: "wand.and.stars")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                                .background(.orange, in: Capsule())
+                                .foregroundStyle(.white)
+                        }
 
-                    Button {
-                        let sr = ImageEnhancer.superResolution(image)
-                        UIImageWriteToSavedPhotosAlbum(sr, nil, nil, nil)
-                    } label: {
-                        Label("超分辨率", systemImage: "magnifyingglass")
-                            .font(.caption.bold())
-                            .padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(.blue, in: Capsule())
-                            .foregroundStyle(.white)
+                        Button {
+                            enhanceAndSave("超分辨率处理中...") { ImageEnhancer.superResolution(image) }
+                        } label: {
+                            Label("超分辨率", systemImage: "magnifyingglass")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                                .background(.blue, in: Capsule())
+                                .foregroundStyle(.white)
+                        }
                     }
                 }
 
-                Text("已保存到相册").font(.subheadline).foregroundStyle(.secondary).padding(.top, 8)
+                Text(statusMessage).font(.subheadline).foregroundStyle(.secondary).padding(.top, 8)
             }
             .navigationTitle("拍摄完成").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
+        }
+    }
+
+    private func enhanceAndSave(_ message: String, process: @escaping () -> UIImage) {
+        isProcessing = true
+        statusMessage = message
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = process()
+            DispatchQueue.main.async {
+                isProcessing = false
+                CameraManager.saveToPhotoLibrary(result) { success in
+                    statusMessage = success ? "处理完成，已保存" : "保存失败"
+                }
+            }
         }
     }
 }

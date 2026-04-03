@@ -19,6 +19,7 @@ class GuideEngine: ObservableObject {
     let voiceCoach = VoiceCoach()
 
     private var frameCount: Int = 0
+    private var isProcessing = false
 
     enum ReadinessLevel: String {
         case notReady = "准备中..."
@@ -126,6 +127,10 @@ class GuideEngine: ObservableObject {
     /// 处理每一帧视频数据
     func processFrame(_ sampleBuffer: CMSampleBuffer) {
         frameCount += 1
+        guard !isProcessing else { return }
+        guard frameCount % 2 == 0 else { return }
+        isProcessing = true
+        defer { isProcessing = false }
 
         sceneClassifier.classify(sampleBuffer: sampleBuffer)
         lightAnalyzer.analyze(sampleBuffer: sampleBuffer)

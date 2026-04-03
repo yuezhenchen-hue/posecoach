@@ -2,6 +2,7 @@
 import UIKit
 import Combine
 import CoreImage
+import Photos
 
 /// 拍摄模式
 enum ShootingMode: String, CaseIterable, Identifiable {
@@ -26,57 +27,52 @@ enum ShootingMode: String, CaseIterable, Identifiable {
     }
 }
 
-/// 相机核心管理器：控制拍照、缩放、参数调整、夜景、RAW、视频
+/// 拍照结果封装，用于安全传递给 SwiftUI sheet
+struct CapturedPhoto: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
+/// 相机核心管理器
 class CameraManager: NSObject, ObservableObject {
     @MainActor @Published var isSessionRunning = false
-    @MainActor @Published var capturedImage: UIImage?
+    @MainActor @Published var capturedPhoto: CapturedPhoto?
     @MainActor @Published var cameraPosition: AVCaptureDevice.Position = .back
     @MainActor @Published var error: CameraError?
     @MainActor @Published var shootingMode: ShootingMode = .auto
+    @MainActor @Published var isCaptureInProgress = false
 
-    // 缩放
     @MainActor @Published var currentZoom: CGFloat = 1.0
     @MainActor @Published var minZoom: CGFloat = 1.0
     @MainActor @Published var maxZoom: CGFloat = 10.0
 
-    // 曝光
     @MainActor @Published var currentExposure: Float = 0.0
     @MainActor @Published var minExposure: Float = -2.0
     @MainActor @Published var maxExposure: Float = 2.0
 
-    // ISO
     @MainActor @Published var currentISO: Float = 100
     @MainActor @Published var minISO: Float = 50
     @MainActor @Published var maxISO: Float = 1600
     @MainActor @Published var isAutoISO: Bool = true
 
-    // 快门速度
     @MainActor @Published var currentShutterSpeed: Double = 1.0 / 60.0
     @MainActor @Published var isAutoShutter: Bool = true
     @MainActor @Published var shutterSpeedOptions: [Double] = [
         1.0/1000, 1.0/500, 1.0/250, 1.0/125, 1.0/60, 1.0/30, 1.0/15, 1.0/8, 1.0/4, 0.5, 1.0
     ]
 
-    // 白平衡
     @MainActor @Published var isAutoWhiteBalance: Bool = true
     @MainActor @Published var whiteBalanceTemperature: Float = 5500
 
-    // 闪光灯 & HDR
     @MainActor @Published var flashMode: AVCaptureDevice.FlashMode = .off
     @MainActor @Published var isHDREnabled = false
-
-    // RAW
     @MainActor @Published var isRAWEnabled = false
     @MainActor @Published var isRAWSupported = false
 
-    // 视频
     @MainActor @Published var isRecording = false
     @MainActor @Published var recordingDuration: TimeInterval = 0
     @MainActor @Published var isStabilizationEnabled = true
-
-    // 夜景模式
     @MainActor @Published var isNightModeActive = false
-    @MainActor @Published var nightModeFrameCount: Int = 5
 
     let session = AVCaptureSession()
     private var videoDeviceInput: AVCaptureDeviceInput?
@@ -92,9 +88,7 @@ class CameraManager: NSObject, ObservableObject {
     // MARK: - Session Lifecycle
 
     func configure() {
-        sessionQueue.async { [weak self] in
-            self?.configureSession()
-        }
+        sessionQueue.async { [weak self] in self?.configureSession() }
     }
 
     func startSession() {
@@ -102,7 +96,7 @@ class CameraManager: NSObject, ObservableObject {
             guard let self, !self.session.isRunning else { return }
             self.session.startRunning()
             let running = self.session.isRunning
-            Task { @MainActor in self.isSessionRunning = running }
+            DispatchQueue.main.async { self.isSessionRunning = running }
         }
     }
 
@@ -110,7 +104,7 @@ class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
-            Task { @MainActor in self.isSessionRunning = false }
+            DispatchQueue.main.async { self.isSessionRunning = false }
         }
     }
 
@@ -133,8 +127,6 @@ class CameraManager: NSObject, ObservableObject {
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
-            photoOutput.maxPhotoDimensions = CMVideoDimensions(width: 4032, height: 3024)
-            photoOutput.isHighResolutionCaptureEnabled = true
         }
 
         videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "com.posecoach.camera.videodata"))
@@ -161,7 +153,7 @@ class CameraManager: NSObject, ObservableObject {
         let device = videoDevice
         let rawSupported = !photoOutput.availableRawPhotoPixelFormatTypes.isEmpty
 
-        Task { @MainActor in
+        DispatchQueue.main.async {
             self.minZoom = device.minAvailableVideoZoomFactor
             self.maxZoom = min(device.maxAvailableVideoZoomFactor, 15.0)
             self.currentZoom = device.videoZoomFactor
@@ -175,18 +167,21 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     private func bestCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        let discoverySession = AVCaptureDevice.DiscoverySession(
+        AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTripleCamera],
-            mediaType: .video,
-            position: position
-        )
-        return discoverySession.devices.first
+            mediaType: .video, position: position
+        ).devices.first
     }
 
     // MARK: - Capture Photo
 
     @MainActor
     func capturePhoto() {
+        guard isSessionRunning, !isCaptureInProgress else { return }
+        guard photoOutput.connection(with: .video) != nil else { return }
+
+        isCaptureInProgress = true
+
         switch shootingMode {
         case .night:
             captureNightMode()
@@ -197,27 +192,40 @@ class CameraManager: NSObject, ObservableObject {
 
     @MainActor
     private func captureStandard() {
-        if isRAWEnabled && isRAWSupported,
-           let rawFormat = photoOutput.availableRawPhotoPixelFormatTypes.first {
-            let settings = AVCapturePhotoSettings(rawPixelFormatType: rawFormat)
+        let settings = AVCapturePhotoSettings()
+
+        let supported = photoOutput.supportedFlashModes
+        if supported.contains(flashMode) {
             settings.flashMode = flashMode
-            photoOutput.capturePhoto(with: settings, delegate: self)
         } else {
-            let settings = AVCapturePhotoSettings()
-            settings.flashMode = flashMode
-            settings.photoQualityPrioritization = .quality
-            photoOutput.capturePhoto(with: settings, delegate: self)
+            settings.flashMode = .off
         }
+
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
-    /// 夜景模式：多帧长曝合成（通过系统API + 高质量优先）
     @MainActor
     private func captureNightMode() {
         isNightModeActive = true
         let settings = AVCapturePhotoSettings()
         settings.flashMode = .off
-        settings.photoQualityPrioritization = .quality
         photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+
+    // MARK: - Photo Saving
+
+    static func saveToPhotoLibrary(_ image: UIImage, completion: ((Bool) -> Void)? = nil) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else {
+                DispatchQueue.main.async { completion?(false) }
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAsset(from: image)
+            }) { success, _ in
+                DispatchQueue.main.async { completion?(success) }
+            }
+        }
     }
 
     // MARK: - Video Recording
@@ -229,19 +237,16 @@ class CameraManager: NSObject, ObservableObject {
             .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("mov")
 
-        if let connection = movieOutput.connection(with: .video) {
-            if isStabilizationEnabled && connection.isVideoStabilizationSupported {
-                connection.preferredVideoStabilizationMode = .cinematic
-            }
+        if let connection = movieOutput.connection(with: .video),
+           isStabilizationEnabled && connection.isVideoStabilizationSupported {
+            connection.preferredVideoStabilizationMode = .cinematic
         }
 
         movieOutput.startRecording(to: tempURL, recordingDelegate: self)
         isRecording = true
         recordingDuration = 0
         recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.recordingDuration += 0.1
-            }
+            DispatchQueue.main.async { self?.recordingDuration += 0.1 }
         }
     }
 
@@ -254,8 +259,6 @@ class CameraManager: NSObject, ObservableObject {
         recordingTimer = nil
     }
 
-    // MARK: - Slow Motion
-
     @MainActor
     func configureSlowMotion() {
         sessionQueue.async { [weak self] in
@@ -263,8 +266,7 @@ class CameraManager: NSObject, ObservableObject {
             do {
                 try device.lockForConfiguration()
                 if let format = device.formats.last(where: {
-                    let ranges = $0.videoSupportedFrameRateRanges
-                    return ranges.contains(where: { $0.maxFrameRate >= 120 })
+                    $0.videoSupportedFrameRateRanges.contains(where: { $0.maxFrameRate >= 120 })
                 }) {
                     device.activeFormat = format
                     device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 120)
@@ -446,7 +448,7 @@ class CameraManager: NSObject, ObservableObject {
             self.session.commitConfiguration()
 
             let device = newDevice
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 self.minZoom = device.minAvailableVideoZoomFactor
                 self.maxZoom = min(device.maxAvailableVideoZoomFactor, 15.0)
                 self.currentZoom = device.videoZoomFactor
@@ -478,11 +480,9 @@ class CameraManager: NSObject, ObservableObject {
         shootingMode = .auto
     }
 
-    /// 快门速度显示文本
     static func shutterSpeedText(_ duration: Double) -> String {
         if duration >= 1.0 { return "\(Int(duration))s" }
-        let denominator = Int(round(1.0 / duration))
-        return "1/\(denominator)"
+        return "1/\(Int(round(1.0 / duration)))"
     }
 }
 
@@ -498,18 +498,34 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard let data = photo.fileDataRepresentation() else { return }
-        Task { @MainActor [weak self] in
-            guard let image = UIImage(data: data) else { return }
+        guard error == nil else {
+            DispatchQueue.main.async { self.isCaptureInProgress = false }
+            return
+        }
+        guard let data = photo.fileDataRepresentation() else {
+            DispatchQueue.main.async { self.isCaptureInProgress = false }
+            return
+        }
+        guard let image = UIImage(data: data) else {
+            DispatchQueue.main.async { self.isCaptureInProgress = false }
+            return
+        }
 
-            if self?.shootingMode == .night {
-                let enhanced = ImageEnhancer.enhanceLowLight(image)
-                self?.capturedImage = enhanced
-                UIImageWriteToSavedPhotosAlbum(enhanced, nil, nil, nil)
-                self?.isNightModeActive = false
+        DispatchQueue.main.async {
+            self.isCaptureInProgress = false
+            self.isNightModeActive = false
+
+            if self.shootingMode == .night {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let enhanced = ImageEnhancer.enhanceLowLight(image)
+                    DispatchQueue.main.async {
+                        self.capturedPhoto = CapturedPhoto(image: enhanced)
+                        CameraManager.saveToPhotoLibrary(enhanced)
+                    }
+                }
             } else {
-                self?.capturedImage = image
-                UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                self.capturedPhoto = CapturedPhoto(image: image)
+                CameraManager.saveToPhotoLibrary(image)
             }
         }
     }
@@ -520,7 +536,12 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 extension CameraManager: AVCaptureFileOutputRecordingDelegate {
     nonisolated func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         guard error == nil else { return }
-        UISaveVideoAtPathToSavedPhotosAlbum(outputFileURL.path, nil, nil, nil)
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else { return }
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: outputFileURL)
+            })
+        }
     }
 }
 
