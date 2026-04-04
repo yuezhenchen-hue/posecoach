@@ -85,6 +85,18 @@ class CameraManager: NSObject, ObservableObject {
     private var pinchStartZoom: CGFloat = 1.0
     private var recordingTimer: Timer?
 
+    /// 根据设备物理方向返回 photoOutput connection 应设置的旋转角度
+    @MainActor
+    private func currentVideoRotationAngle() -> CGFloat {
+        switch UIDevice.current.orientation {
+        case .portrait:            return 90
+        case .portraitUpsideDown:   return 270
+        case .landscapeLeft:        return 0
+        case .landscapeRight:       return 180
+        default:                    return 90   // faceUp / faceDown / unknown → 默认竖屏
+        }
+    }
+
     // MARK: - Session Lifecycle
 
     func configure() {
@@ -96,7 +108,10 @@ class CameraManager: NSObject, ObservableObject {
             guard let self, !self.session.isRunning else { return }
             self.session.startRunning()
             let running = self.session.isRunning
-            DispatchQueue.main.async { self.isSessionRunning = running }
+            DispatchQueue.main.async {
+                self.isSessionRunning = running
+                UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            }
         }
     }
 
@@ -104,7 +119,10 @@ class CameraManager: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             guard let self, self.session.isRunning else { return }
             self.session.stopRunning()
-            DispatchQueue.main.async { self.isSessionRunning = false }
+            DispatchQueue.main.async {
+                self.isSessionRunning = false
+                UIDevice.current.endGeneratingDeviceOrientationNotifications()
+            }
         }
     }
 
@@ -127,6 +145,10 @@ class CameraManager: NSObject, ObservableObject {
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
+            photoOutput.maxPhotoQualityPrioritization = .quality
+            if let connection = photoOutput.connection(with: .video) {
+                connection.videoRotationAngle = 90
+            }
         }
 
         videoDataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "com.posecoach.camera.videodata"))
@@ -192,8 +214,13 @@ class CameraManager: NSObject, ObservableObject {
 
     @MainActor
     private func captureStandard() {
-        let settings: AVCapturePhotoSettings
+        // 1) 根据设备方向设置旋转角度
+        if let connection = photoOutput.connection(with: .video) {
+            connection.videoRotationAngle = currentVideoRotationAngle()
+        }
 
+        // 2) 配置 RAW / Processed 格式
+        let settings: AVCapturePhotoSettings
         if isRAWEnabled,
            let rawType = photoOutput.availableRawPhotoPixelFormatTypes.first {
             if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
@@ -211,10 +238,15 @@ class CameraManager: NSObject, ObservableObject {
             settings = AVCapturePhotoSettings()
         }
 
+        // 3) 最大分辨率
+        settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+
+        // 4) 闪光灯
         let supported = photoOutput.supportedFlashModes
         settings.flashMode = supported.contains(flashMode) ? flashMode : .off
 
-        settings.photoQualityPrioritization = isHDREnabled ? .quality : .balanced
+        // 5) 始终最高质量
+        settings.photoQualityPrioritization = .quality
 
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
@@ -222,13 +254,38 @@ class CameraManager: NSObject, ObservableObject {
     @MainActor
     private func captureNightMode() {
         isNightModeActive = true
+
+        if let connection = photoOutput.connection(with: .video) {
+            connection.videoRotationAngle = currentVideoRotationAngle()
+        }
+
         let settings = AVCapturePhotoSettings()
+        settings.maxPhotoDimensions = photoOutput.maxPhotoDimensions
+        settings.photoQualityPrioritization = .quality
         settings.flashMode = .off
+
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
     // MARK: - Photo Saving
 
+    /// 用原始 Data 直接保存到相册（保留全分辨率 + EXIF + 零损失）
+    static func savePhotoDataToLibrary(_ data: Data, completion: ((Bool) -> Void)? = nil) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else {
+                DispatchQueue.main.async { completion?(false) }
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                let creation = PHAssetCreationRequest.forAsset()
+                creation.addResource(with: .photo, data: data, options: nil)
+            }) { success, _ in
+                DispatchQueue.main.async { completion?(success) }
+            }
+        }
+    }
+
+    /// 保存 UIImage（仅用于 AI 处理后的增强图片）
     static func saveToPhotoLibrary(_ image: UIImage, completion: ((Bool) -> Void)? = nil) {
         PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
             guard status == .authorized || status == .limited else {
@@ -558,7 +615,7 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
                 }
             } else {
                 self.capturedPhoto = CapturedPhoto(image: image)
-                CameraManager.saveToPhotoLibrary(image)
+                CameraManager.savePhotoDataToLibrary(data)
             }
         }
     }
