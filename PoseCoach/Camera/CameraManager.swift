@@ -196,7 +196,17 @@ class CameraManager: NSObject, ObservableObject {
 
         if isRAWEnabled,
            let rawType = photoOutput.availableRawPhotoPixelFormatTypes.first {
-            settings = AVCapturePhotoSettings(rawPixelFormatType: rawType)
+            if photoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                settings = AVCapturePhotoSettings(
+                    rawPixelFormatType: rawType,
+                    processedFormat: [AVVideoCodecKey: AVVideoCodecType.hevc]
+                )
+            } else {
+                settings = AVCapturePhotoSettings(
+                    rawPixelFormatType: rawType,
+                    processedFormat: [AVVideoCodecKey: AVVideoCodecType.jpeg]
+                )
+            }
         } else {
             settings = AVCapturePhotoSettings()
         }
@@ -230,6 +240,18 @@ class CameraManager: NSObject, ObservableObject {
             }) { success, _ in
                 DispatchQueue.main.async { completion?(success) }
             }
+        }
+    }
+
+    static func saveDNGToPhotoLibrary(_ dngData: Data) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else { return }
+            PHPhotoLibrary.shared().performChanges({
+                let creation = PHAssetCreationRequest.forAsset()
+                let options = PHAssetResourceCreationOptions()
+                options.shouldMoveFile = false
+                creation.addResource(with: .photo, data: dngData, options: options)
+            }) { _, _ in }
         }
     }
 
@@ -503,6 +525,12 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
 extension CameraManager: AVCapturePhotoCaptureDelegate {
     nonisolated func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        if photo.isRawPhoto {
+            if let rawData = photo.fileDataRepresentation() {
+                CameraManager.saveDNGToPhotoLibrary(rawData)
+            }
+            return
+        }
         guard error == nil else {
             DispatchQueue.main.async { self.isCaptureInProgress = false }
             return
