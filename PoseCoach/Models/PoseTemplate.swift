@@ -30,6 +30,10 @@ struct InspirationCategory: Identifiable {
             templates: PoseTemplate.allPoses.filter { $0.scene == .garden || $0.scene == .nature }
         ),
         InspirationCategory(
+            id: "spring_forest", name: "春日山林", icon: "tree.fill", color: .mint,
+            templates: PoseTemplate.allPoses.filter { $0.scene == .forest || $0.scene == .mountain }
+        ),
+        InspirationCategory(
             id: "night", name: "夜景", icon: "moon.stars.fill", color: .indigo,
             templates: PoseTemplate.allPoses.filter { $0.scene == .nightScene }
         ),
@@ -129,6 +133,28 @@ struct PoseTemplate: Identifiable, Codable {
         PoseTemplate(id: "general_01", name: "自然站立", description: "微侧身，一手插兜，重心放一条腿\n最基础也最好用的站姿", scene: .unknown, personCount: .single, difficulty: .easy, placeholderGradient: ["orange", "pink"]),
         PoseTemplate(id: "general_02", name: "坐姿放松", description: "找台阶或栏杆坐下，双腿自然交叉\n平视或微俯拍都可以", scene: .unknown, personCount: .single, difficulty: .easy, placeholderGradient: ["pink", "purple"]),
         PoseTemplate(id: "general_03", name: "抬头仰望", description: "微微抬头看天空，表情放松\n仰拍角度，以天空为背景", scene: .unknown, personCount: .single, difficulty: .easy, placeholderGradient: ["blue", "cyan"]),
+
+        // 春日山林
+        PoseTemplate(id: "spring_forest_01", name: "林间小路漫步", description: "沿着树林小路自然行走\n利用路径做引导线，人在三分线位置", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["green", "mint"]),
+        PoseTemplate(id: "spring_forest_02", name: "阳光穿透树叶", description: "仰头感受阳光穿透树叶的光斑\n逆光拍摄，头发周围形成光晕", scene: .forest, personCount: .single, difficulty: .medium, placeholderGradient: ["green", "yellow"]),
+        PoseTemplate(id: "spring_forest_03", name: "树干倚靠", description: "侧身倚靠大树干，一脚踩树根\n利用树干纹理做背景，侧光最佳", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["brown", "green"]),
+        PoseTemplate(id: "spring_forest_04", name: "溪边蹲坐", description: "在山溪旁蹲下，手触碰溪水\n低角度拍摄，溪水做前景虚化", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["teal", "green"]),
+        PoseTemplate(id: "spring_forest_05", name: "春日花海", description: "站在野花丛中，双臂微张感受自然\n广角拍摄，人物在花海中心", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["pink", "green"]),
+        PoseTemplate(id: "spring_forest_06", name: "山顶远眺", description: "站在山顶俯瞰远处风景，背影面朝山谷\n广角构图，人物放在画面下三分之一", scene: .mountain, personCount: .single, difficulty: .medium, placeholderGradient: ["blue", "green"]),
+        PoseTemplate(id: "spring_forest_07", name: "仰望参天大树", description: "仰头望向参天大树的树冠\n超低角度仰拍，树干做引导线", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["green", "teal"]),
+        PoseTemplate(id: "spring_forest_08", name: "竹林穿行", description: "走在竹林间的小路上\n利用竹竿形成对称构图", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["green", "cyan"]),
+        PoseTemplate(id: "spring_forest_09", name: "落叶纷飞", description: "双手向上抛撒落叶，抓拍飘散瞬间\n连拍模式，逆光效果更梦幻", scene: .forest, personCount: .single, difficulty: .medium, placeholderGradient: ["orange", "green"]),
+        PoseTemplate(id: "spring_forest_10", name: "晨雾仙境", description: "清晨薄雾中站在林间空地\n雾气营造朦胧氛围，人物剪影效果好", scene: .forest, personCount: .single, difficulty: .hard, placeholderGradient: ["gray", "green"]),
+        PoseTemplate(id: "spring_forest_11", name: "吊桥上回望", description: "站在山间吊桥上回头看镜头\n桥面做引导线，背景是山谷绿林", scene: .mountain, personCount: .single, difficulty: .medium, placeholderGradient: ["brown", "green"]),
+        PoseTemplate(id: "spring_forest_12", name: "花瓣飘落", description: "樱花树下，花瓣随风飘落\n仰拍，让花瓣在画面中漫天飞舞", scene: .forest, personCount: .single, difficulty: .medium, placeholderGradient: ["pink", "white"]),
+        PoseTemplate(id: "spring_forest_13", name: "草地躺拍", description: "躺在草地上，仰望天空和树冠\n从正上方俯拍，四周环绕绿草", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["green", "yellow"]),
+        PoseTemplate(id: "spring_forest_14", name: "光影斑驳", description: "站在树影斑驳的光下\n利用树叶间的光斑照在脸上和身上", scene: .forest, personCount: .single, difficulty: .medium, placeholderGradient: ["yellow", "green"]),
+        PoseTemplate(id: "spring_forest_15", name: "石阶攀登", description: "在山间石阶上行走或回望\n利用石阶做引导线，人在画面中段", scene: .mountain, personCount: .single, difficulty: .easy, placeholderGradient: ["gray", "green"]),
+        PoseTemplate(id: "spring_forest_16", name: "日出山巅", description: "清晨站在山顶迎接日出\n剪影效果，双臂打开拥抱阳光", scene: .mountain, personCount: .single, difficulty: .hard, placeholderGradient: ["orange", "blue"]),
+        PoseTemplate(id: "spring_forest_17", name: "雨后彩虹", description: "雨后的森林里，叶片挂着水珠\n微距前景+人物远景的层次构图", scene: .forest, personCount: .single, difficulty: .hard, placeholderGradient: ["teal", "green"]),
+        PoseTemplate(id: "spring_forest_18", name: "田野奔跑", description: "在山间开阔草地上自由奔跑\n航拍视角或低角度跟拍效果好", scene: .forest, personCount: .single, difficulty: .medium, placeholderGradient: ["green", "cyan"]),
+        PoseTemplate(id: "spring_forest_19", name: "情侣山间牵手", description: "两人牵手走在山间小路\n从身后拍摄背影，远处是连绵山脉", scene: .mountain, personCount: .couple, difficulty: .easy, placeholderGradient: ["green", "blue"]),
+        PoseTemplate(id: "spring_forest_20", name: "山野写真", description: "在野花和绿草间自然坐下\n俯拍或平拍，裙摆铺在草地上", scene: .forest, personCount: .single, difficulty: .easy, placeholderGradient: ["pink", "green"]),
     ]
 }
 
