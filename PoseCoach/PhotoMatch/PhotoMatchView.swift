@@ -188,7 +188,7 @@ struct PhotoMatchAnalysisSheet: View {
                 }
             }
             .navigationDestination(isPresented: $showCamera) {
-                PhotoMatchCameraView(analyzer: analyzer)
+                PhotoMatchCameraView(analyzer: analyzer, referenceImage: image)
             }
         }
     }
@@ -278,32 +278,43 @@ struct PhotoMatchAnalysisSheet: View {
     }
 }
 
-/// 照着拍模式下的相机视图 — 含一键应用/还原 + 实时光线对比
+/// 照着拍模式下的相机视图 — 含一键应用/还原 + 实时 AI 指导
 struct PhotoMatchCameraView: View {
     @ObservedObject var analyzer: ReferencePhotoAnalyzer
+    let referenceImage: UIImage
     @StateObject private var cameraManager = CameraManager()
     @StateObject private var guideEngine = GuideEngine()
-    @State private var overlayOpacity: Double = 0.3
     @State private var parametersApplied = false
     @State private var showParameterPanel = true
-    @State private var savedDefaultParams = CameraParameters()
+    @State private var showReferenceOverlay = false
+    @State private var referenceOpacity: Double = 0.3
+    @State private var presentedPhoto: CapturedPhoto?
 
     var body: some View {
         ZStack {
             CameraPreview(session: cameraManager.session)
                 .ignoresSafeArea()
 
+            CompositionOverlay(guide: guideEngine.compositionAnalyzer.selectedGuide)
+
+            if showReferenceOverlay {
+                Image(uiImage: referenceImage)
+                    .resizable().scaledToFill()
+                    .ignoresSafeArea()
+                    .opacity(referenceOpacity)
+                    .allowsHitTesting(false)
+            }
+
             VStack(spacing: 0) {
-                // 顶部状态栏
                 topStatusBar
                 Spacer()
 
-                // 实时光线对比 + 参数建议
+                matchGuidePanel
+
                 if showParameterPanel {
                     liveParameterComparisonCard
                 }
 
-                // 底部控制栏
                 bottomControlBar
             }
         }
@@ -312,68 +323,100 @@ struct PhotoMatchCameraView: View {
         .onAppear {
             cameraManager.configure()
             cameraManager.startSession()
-
-            cameraManager.videoFrameHandler = { buffer in
-                guideEngine.processFrame(buffer)
+            cameraManager.videoFrameHandler = { [weak guideEngine] buffer in
+                DispatchQueue.main.async {
+                    guideEngine?.processFrame(buffer)
+                }
             }
-
             applyReferenceParameters()
         }
         .onDisappear {
             cameraManager.stopSession()
             guideEngine.voiceCoach.stop()
         }
+        .onChange(of: cameraManager.capturedPhoto?.id) { _, newID in
+            if newID != nil { presentedPhoto = cameraManager.capturedPhoto }
+        }
+        .sheet(item: $presentedPhoto) { photo in
+            MatchCapturedView(image: photo.image, referenceImage: referenceImage)
+        }
     }
 
     // MARK: - Top Status Bar
 
     private var topStatusBar: some View {
-        HStack {
-            // 参考图缩略
-            if analyzer.analysis != nil {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 50, height: 70)
-                    .overlay {
-                        VStack(spacing: 2) {
-                            Image(systemName: "photo.fill")
-                                .font(.caption)
-                            Text("参考")
-                                .font(.system(size: 8))
-                        }
-                        .foregroundStyle(.white)
+        HStack(spacing: 10) {
+            Button { withAnimation { showReferenceOverlay.toggle() } } label: {
+                Image(uiImage: referenceImage)
+                    .resizable().scaledToFill()
+                    .frame(width: 44, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(showReferenceOverlay ? .orange : .white.opacity(0.5), lineWidth: 1.5)
+                    )
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: showReferenceOverlay ? "eye.fill" : "eye.slash.fill")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.white)
+                            .padding(3)
+                            .background(.black.opacity(0.6), in: Circle())
+                            .offset(x: 3, y: 3)
                     }
             }
 
-            Spacer()
-
-            // 主体检测状态
             HStack(spacing: 6) {
                 Circle()
-                    .fill(guideEngine.poseDetector.personCount > 0 ? .green : .red)
+                    .fill(guideEngine.subjectDetector.subjectType != .none ? .green : .red)
                     .frame(width: 8, height: 8)
                 Text(guideEngine.poseDetector.mainSubjectDescription.isEmpty
                      ? "等待检测..." : guideEngine.poseDetector.mainSubjectDescription)
                     .font(.caption2.bold())
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 10).padding(.vertical, 6)
             .background(.ultraThinMaterial, in: Capsule())
 
             Spacer()
 
-            // 参数面板切换
-            Button {
-                withAnimation { showParameterPanel.toggle() }
-            } label: {
-                Image(systemName: showParameterPanel ? "slider.horizontal.3" : "slider.horizontal.3")
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Circle())
+            if showReferenceOverlay {
+                VStack(spacing: 2) {
+                    Text("透明度").font(.system(size: 8)).foregroundStyle(.secondary)
+                    Slider(value: $referenceOpacity, in: 0.1...0.6)
+                        .tint(.orange).frame(width: 60)
+                }
+            }
+
+            Button { withAnimation { showParameterPanel.toggle() } } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundStyle(showParameterPanel ? .orange : .white)
+                    .padding(8).background(.ultraThinMaterial, in: Circle())
             }
         }
         .foregroundStyle(.white)
-        .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(.horizontal).padding(.top, 8)
+    }
+
+    // MARK: - AI Guide Panel
+
+    private var matchGuidePanel: some View {
+        VStack(spacing: 4) {
+            let advices = guideEngine.currentAdvices
+            let important = advices.filter { $0.priority >= 1 && $0.priority <= 4 }
+
+            ForEach(important.prefix(2)) { a in
+                HStack(spacing: 6) {
+                    Image(systemName: a.icon).foregroundStyle(.orange).frame(width: 20)
+                    if let d = a.direction, d != .stay {
+                        Text(d.rawValue).font(.system(size: 14, weight: .bold)).foregroundStyle(.orange).frame(width: 18)
+                    }
+                    Text(a.message).font(.system(size: 12)).foregroundStyle(.white).lineLimit(1)
+                    Spacer()
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(.horizontal).padding(.bottom, 4)
     }
 
     // MARK: - Live Parameter Comparison Card
@@ -381,83 +424,56 @@ struct PhotoMatchCameraView: View {
     private var liveParameterComparisonCard: some View {
         VStack(spacing: 10) {
             HStack {
-                Text("参数对比")
-                    .font(.caption.bold())
+                Text("参数对比").font(.caption.bold())
                 Spacer()
                 Text(parametersApplied ? "已应用参考参数" : "使用默认参数")
                     .font(.caption2)
                     .foregroundStyle(parametersApplied ? .green : .secondary)
             }
 
-            // 当前实时光线 vs 参考图
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("当前环境")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(guideEngine.lightAnalyzer.lightCondition.description)
-                        .font(.caption.bold())
-                    Text("亮度 \(String(format: "%.0f%%", guideEngine.lightAnalyzer.brightness * 100))")
-                        .font(.caption2)
-                    Text(guideEngine.lightAnalyzer.colorTemperature.rawValue)
-                        .font(.caption2)
+                    Text("当前环境").font(.caption2).foregroundStyle(.secondary)
+                    Text(guideEngine.lightAnalyzer.lightCondition.description).font(.caption.bold())
+                    Text("亮度 \(String(format: "%.0f%%", guideEngine.lightAnalyzer.brightness * 100))").font(.caption2)
+                    Text(guideEngine.lightAnalyzer.colorTemperature.rawValue).font(.caption2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "arrow.left.arrow.right")
-                    .foregroundStyle(.orange)
+                Image(systemName: "arrow.left.arrow.right").foregroundStyle(.orange)
 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("参考图")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(analyzer.analysis?.isBacklit == true ? "逆光" : "顺光")
-                        .font(.caption.bold())
+                    Text("参考图").font(.caption2).foregroundStyle(.secondary)
+                    Text(analyzer.analysis?.isBacklit == true ? "逆光" : "顺光").font(.caption.bold())
                     if let exp = analyzer.analysis?.estimatedExposure {
-                        Text("建议曝光 \(String(format: "%+.1f", exp))")
-                            .font(.caption2)
+                        Text("建议曝光 \(String(format: "%+.1f", exp))").font(.caption2)
                     }
-                    Text(analyzer.analysis?.dominantColorTemperature.rawValue ?? "中性")
-                        .font(.caption2)
+                    Text(analyzer.analysis?.dominantColorTemperature.rawValue ?? "中性").font(.caption2)
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
 
-            // 智能提示
             if let tip = generateLightComparisonTip() {
                 HStack(spacing: 6) {
-                    Image(systemName: "lightbulb.fill")
-                        .foregroundStyle(.yellow)
-                        .font(.caption2)
-                    Text(tip)
-                        .font(.caption2)
-                        .foregroundStyle(.white)
+                    Image(systemName: "lightbulb.fill").foregroundStyle(.yellow).font(.caption2)
+                    Text(tip).font(.caption2).foregroundStyle(.white)
                 }
                 .padding(.vertical, 4)
             }
 
-            // 一键应用 / 一键还原 按钮
             HStack(spacing: 12) {
-                Button {
-                    applyReferenceParameters()
-                } label: {
+                Button { applyReferenceParameters() } label: {
                     Label("一键应用", systemImage: "checkmark.circle.fill")
-                        .font(.caption.bold())
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .font(.caption.bold()).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .background(parametersApplied ? .gray : .orange, in: RoundedRectangle(cornerRadius: 8))
                 }
                 .disabled(parametersApplied)
 
-                Button {
-                    restoreDefaultParameters()
-                } label: {
+                Button { restoreDefaultParameters() } label: {
                     Label("一键还原", systemImage: "arrow.uturn.backward.circle.fill")
-                        .font(.caption.bold())
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .font(.caption.bold()).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
                         .background(parametersApplied ? .orange : .gray, in: RoundedRectangle(cornerRadius: 8))
                 }
                 .disabled(!parametersApplied)
@@ -465,45 +481,29 @@ struct PhotoMatchCameraView: View {
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal)
-        .padding(.bottom, 8)
+        .padding(.horizontal).padding(.bottom, 8)
     }
 
     // MARK: - Bottom Control Bar
 
     private var bottomControlBar: some View {
         HStack(spacing: 40) {
-            // 构图提示
             VStack(spacing: 4) {
-                Image(systemName: "squareshape.split.3x3")
-                    .font(.title3)
-                Text(analyzer.analysis?.compositionType.rawValue ?? "三分法")
-                    .font(.caption2)
+                Image(systemName: "squareshape.split.3x3").font(.title3)
+                Text(analyzer.analysis?.compositionType.rawValue ?? "三分法").font(.caption2)
             }
 
-            // 快门
-            Button {
-                cameraManager.capturePhoto()
-            } label: {
+            Button { cameraManager.capturePhoto() } label: {
                 ZStack {
-                    Circle()
-                        .strokeBorder(.white, lineWidth: 4)
-                        .frame(width: 72, height: 72)
-                    Circle()
-                        .fill(.white)
-                        .frame(width: 60, height: 60)
+                    Circle().strokeBorder(.white, lineWidth: 4).frame(width: 72, height: 72)
+                    Circle().fill(.white).frame(width: 60, height: 60)
                 }
             }
 
-            // 翻转
-            Button {
-                cameraManager.switchCamera()
-            } label: {
+            Button { cameraManager.switchCamera() } label: {
                 VStack(spacing: 4) {
-                    Image(systemName: "camera.rotate.fill")
-                        .font(.title3)
-                    Text("翻转")
-                        .font(.caption2)
+                    Image(systemName: "camera.rotate.fill").font(.title3)
+                    Text("翻转").font(.caption2)
                 }
             }
         }
@@ -517,15 +517,11 @@ struct PhotoMatchCameraView: View {
         guard let analysis = analyzer.analysis else { return }
         var params = ParameterRecommender.matchParameters(from: analysis)
 
-        // 根据当前实时光线动态微调
         let currentBrightness = guideEngine.lightAnalyzer.brightness
-        let isCurrentlyDark = currentBrightness < 0.35
-        let isCurrentlyBright = currentBrightness > 0.7
-
-        if isCurrentlyDark && !(analysis.isBacklit) {
+        if currentBrightness < 0.35 && !(analysis.isBacklit) {
             params.exposureBias = (params.exposureBias ?? 0) + 0.3
             params.flashMode = .auto
-        } else if isCurrentlyBright {
+        } else if currentBrightness > 0.7 {
             params.exposureBias = (params.exposureBias ?? 0) - 0.2
         }
 
@@ -539,8 +535,7 @@ struct PhotoMatchCameraView: View {
     }
 
     private func restoreDefaultParameters() {
-        let defaults = CameraParameters()
-        cameraManager.applyParameters(defaults)
+        cameraManager.applyParameters(CameraParameters())
         parametersApplied = false
     }
 
@@ -561,5 +556,43 @@ struct PhotoMatchCameraView: View {
             return "色温差异：当前\(current.colorTemperature.rawValue)，参考图\(analysis.dominantColorTemperature.rawValue)"
         }
         return nil
+    }
+}
+
+/// 照着拍成片对比视图
+struct MatchCapturedView: View {
+    let image: UIImage
+    let referenceImage: UIImage
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 16) {
+                    HStack(spacing: 12) {
+                        VStack(spacing: 4) {
+                            Image(uiImage: referenceImage)
+                                .resizable().scaledToFill()
+                                .frame(height: 220).clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            Text("参考图").font(.caption).foregroundStyle(.secondary)
+                        }
+                        VStack(spacing: 4) {
+                            Image(uiImage: image)
+                                .resizable().scaledToFill()
+                                .frame(height: 220).clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            Text("你的照片").font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+
+                    Text("已保存到相册")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                .padding()
+            }
+            .navigationTitle("拍摄完成").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } } }
+        }
     }
 }

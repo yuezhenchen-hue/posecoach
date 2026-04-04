@@ -13,6 +13,8 @@ struct PoseOverlayCameraView: View {
     @State private var silhouetteOpacity: Double = 0.4
     @State private var comparison: PoseComparisonResult?
     @State private var showGuide = true
+    @State private var showFlash = false
+    @State private var savedMessage: String?
 
     var body: some View {
         ZStack {
@@ -20,12 +22,31 @@ struct PoseOverlayCameraView: View {
             silhouetteOverlay
             poseSkeletonOverlay
             controlsOverlay
+
+            if showFlash {
+                Color.white.ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+
+            if let msg = savedMessage {
+                VStack {
+                    Spacer()
+                    Label(msg, systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20).padding(.vertical, 10)
+                        .background(.green.opacity(0.85), in: Capsule())
+                        .padding(.bottom, 120)
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
         }
         .onAppear {
             cameraManager.configure()
             cameraManager.startSession()
             cameraManager.videoFrameHandler = { [weak poseTracker] buffer in
-                DispatchQueue.main.async {
+                Task { @MainActor in
                     poseTracker?.processFrame(buffer)
                 }
             }
@@ -38,6 +59,17 @@ struct PoseOverlayCameraView: View {
                 comparison = SilhouetteExtractor.comparePoses(
                     templateJoints: tJoints, liveJoints: newJoints
                 )
+            }
+        }
+        .onChange(of: cameraManager.capturedPhoto?.id) { _, newID in
+            guard newID != nil else { return }
+            withAnimation(.easeOut(duration: 0.15)) { showFlash = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeIn(duration: 0.1)) { showFlash = false }
+            }
+            withAnimation { savedMessage = "已保存到相册" }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation { savedMessage = nil }
             }
         }
         .statusBarHidden()
@@ -262,47 +294,58 @@ struct PoseOverlayCameraView: View {
 
 // MARK: - Live Pose Tracker
 
-/// 实时追踪相机画面中的人体姿态
+/// 实时追踪相机画面中的人体姿态（Vision 运算在后台线程）
 @MainActor
 class LivePoseTracker: ObservableObject {
     @Published var currentJoints: [VNHumanBodyPoseObservation.JointName: CGPoint]?
 
     private var lastDetectionTime: Date = .distantPast
     private let detectionInterval: TimeInterval = 0.15
+    private let visionQueue = DispatchQueue(label: "com.posecoach.posetracker", qos: .userInitiated)
+    private var isDetecting = false
 
     func processFrame(_ sampleBuffer: CMSampleBuffer) {
         let now = Date()
         guard now.timeIntervalSince(lastDetectionTime) >= detectionInterval else { return }
+        guard !isDetecting else { return }
         lastDetectionTime = now
+        isDetecting = true
 
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-
-        let request = VNDetectHumanBodyPoseRequest()
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-        try? handler.perform([request])
-
-        guard let pose = request.results?.first else {
-            currentJoints = nil
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            isDetecting = false
             return
         }
 
-        var joints: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
-        let names: [VNHumanBodyPoseObservation.JointName] = [
-            .nose, .neck,
-            .leftShoulder, .rightShoulder,
-            .leftElbow, .rightElbow,
-            .leftWrist, .rightWrist,
-            .leftHip, .rightHip,
-            .leftKnee, .rightKnee,
-            .leftAnkle, .rightAnkle
-        ]
+        let pb = pixelBuffer
+        visionQueue.async { [weak self] in
+            let request = VNDetectHumanBodyPoseRequest()
+            let handler = VNImageRequestHandler(cvPixelBuffer: pb, options: [:])
+            try? handler.perform([request])
 
-        for name in names {
-            if let point = try? pose.recognizedPoint(name), point.confidence > 0.3 {
-                joints[name] = CGPoint(x: point.location.x, y: point.location.y)
+            let names: [VNHumanBodyPoseObservation.JointName] = [
+                .nose, .neck,
+                .leftShoulder, .rightShoulder,
+                .leftElbow, .rightElbow,
+                .leftWrist, .rightWrist,
+                .leftHip, .rightHip,
+                .leftKnee, .rightKnee,
+                .leftAnkle, .rightAnkle
+            ]
+
+            var joints: [VNHumanBodyPoseObservation.JointName: CGPoint] = [:]
+            if let pose = request.results?.first {
+                for name in names {
+                    if let point = try? pose.recognizedPoint(name), point.confidence > 0.3 {
+                        joints[name] = CGPoint(x: point.location.x, y: point.location.y)
+                    }
+                }
+            }
+
+            let result = joints.isEmpty ? nil : joints
+            DispatchQueue.main.async {
+                self?.isDetecting = false
+                self?.currentJoints = result
             }
         }
-
-        currentJoints = joints.isEmpty ? nil : joints
     }
 }

@@ -192,14 +192,19 @@ class CameraManager: NSObject, ObservableObject {
 
     @MainActor
     private func captureStandard() {
-        let settings = AVCapturePhotoSettings()
+        let settings: AVCapturePhotoSettings
+
+        if isRAWEnabled,
+           let rawType = photoOutput.availableRawPhotoPixelFormatTypes.first {
+            settings = AVCapturePhotoSettings(rawPixelFormatType: rawType)
+        } else {
+            settings = AVCapturePhotoSettings()
+        }
 
         let supported = photoOutput.supportedFlashModes
-        if supported.contains(flashMode) {
-            settings.flashMode = flashMode
-        } else {
-            settings.flashMode = .off
-        }
+        settings.flashMode = supported.contains(flashMode) ? flashMode : .off
+
+        settings.photoQualityPrioritization = isHDREnabled ? .quality : .balanced
 
         photoOutput.capturePhoto(with: settings, delegate: self)
     }

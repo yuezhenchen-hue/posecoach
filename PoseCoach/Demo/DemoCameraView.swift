@@ -50,7 +50,15 @@ struct DemoCameraView: View {
         .sheet(isPresented: $showSceneSelector) {
             SceneSelectionView(
                 selectedScene: guideEngine.sceneClassifier.currentScene,
-                onSelect: { _ in showSceneSelector = false }
+                isManualOverride: guideEngine.sceneClassifier.isManualOverride,
+                onSelect: { scene in
+                    guideEngine.sceneClassifier.setManualScene(scene)
+                    showSceneSelector = false
+                },
+                onAutoMode: {
+                    guideEngine.sceneClassifier.clearManualOverride()
+                    showSceneSelector = false
+                }
             )
             .presentationDetents([.medium])
         }

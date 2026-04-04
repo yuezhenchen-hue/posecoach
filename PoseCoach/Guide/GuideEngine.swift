@@ -18,6 +18,8 @@ class GuideEngine: ObservableObject {
     let subjectDetector = SubjectDetector()
     let voiceCoach = VoiceCoach()
 
+    var guidanceLevel: GuidanceLevel = .beginner
+
     private var frameCount: Int = 0
     private var isProcessing = false
 
@@ -299,8 +301,17 @@ class GuideEngine: ObservableObject {
         default: overallReadiness = .perfect
         }
 
-        if let topAdvice = currentAdvices.first(where: { $0.priority >= 1 && $0.priority <= 4 }) {
-            voiceCoach.speak(topAdvice.message)
+        switch guidanceLevel {
+        case .beginner:
+            if let top = currentAdvices.first(where: { $0.priority >= 1 && $0.priority <= 3 }) {
+                voiceCoach.speak(top.message)
+            }
+        case .intermediate:
+            if let top = currentAdvices.first(where: { $0.priority >= 1 && $0.priority <= 5 }) {
+                voiceCoach.speak(top.message)
+            }
+        case .advanced:
+            break
         }
     }
 

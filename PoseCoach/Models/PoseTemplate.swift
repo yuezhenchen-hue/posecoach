@@ -175,6 +175,8 @@ extension Color {
         case "pink": return .pink
         case "brown": return .brown
         case "gray": return .gray
+        case "white": return .white
+        case "mint": return .mint
         default: return .orange
         }
     }

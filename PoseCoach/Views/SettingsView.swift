@@ -3,8 +3,17 @@ import SwiftUI
 /// 设置视图
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
-    @StateObject private var voiceCoach = VoiceCoach()
-    @State private var selectedComposition: CompositionAnalyzer.CompositionGuide = .ruleOfThirds
+
+    private var compositionBinding: Binding<CompositionAnalyzer.CompositionGuide> {
+        Binding(
+            get: {
+                CompositionAnalyzer.CompositionGuide(rawValue: appState.selectedComposition) ?? .ruleOfThirds
+            },
+            set: {
+                appState.selectedComposition = $0.rawValue
+            }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -17,10 +26,12 @@ struct SettingsView: View {
                             Text(level.rawValue).tag(level)
                         }
                     }
+
+                    guidanceLevelDescription
                 }
 
                 Section("构图参考线") {
-                    Picker("默认构图线", selection: $selectedComposition) {
+                    Picker("默认构图线", selection: compositionBinding) {
                         ForEach(CompositionAnalyzer.CompositionGuide.allCases) { guide in
                             Text(guide.rawValue).tag(guide)
                         }
@@ -38,12 +49,11 @@ struct SettingsView: View {
                     HStack {
                         Text("版本")
                         Spacer()
-                        Text("1.0.0")
+                        Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                             .foregroundStyle(.secondary)
                     }
 
                     Link("隐私政策", destination: URL(string: "https://posecoach.app/privacy")!)
-
                     Link("使用条款", destination: URL(string: "https://posecoach.app/terms")!)
                 }
 
@@ -64,5 +74,18 @@ struct SettingsView: View {
             }
             .navigationTitle("设置")
         }
+    }
+
+    private var guidanceLevelDescription: some View {
+        let desc: String = {
+            switch appState.guidanceLevel {
+            case .beginner: return "显示最关键的 1-2 条建议，语音播报核心指导"
+            case .intermediate: return "显示更多建议，语音播报重要提示"
+            case .advanced: return "显示全部专业信息，减少语音干扰"
+            }
+        }()
+        return Text(desc)
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 }

@@ -13,6 +13,7 @@ struct MainCameraView: View {
     @State private var presentedPhoto: CapturedPhoto?
     @State private var showZoomSlider = false
     @State private var showLevelIndicator = false
+    @State private var timerSetting: Int = 0
     @State private var timerSeconds: Int = 0
     @State private var isCountingDown = false
 
@@ -32,7 +33,15 @@ struct MainCameraView: View {
         .sheet(isPresented: $showSceneSelector) {
             SceneSelectionView(
                 selectedScene: guideEngine.sceneClassifier.currentScene,
-                onSelect: { _ in showSceneSelector = false }
+                isManualOverride: guideEngine.sceneClassifier.isManualOverride,
+                onSelect: { scene in
+                    guideEngine.sceneClassifier.setManualScene(scene)
+                    showSceneSelector = false
+                },
+                onAutoMode: {
+                    guideEngine.sceneClassifier.clearManualOverride()
+                    showSceneSelector = false
+                }
             )
             .presentationDetents([.medium])
         }
@@ -111,6 +120,7 @@ struct MainCameraView: View {
             cameraManager.configure()
             cameraManager.startSession()
             motionManager.start()
+            syncSettingsToEngine()
             cameraManager.videoFrameHandler = { [weak guideEngine] buffer in
                 DispatchQueue.main.async {
                     guideEngine?.processFrame(buffer)
@@ -127,6 +137,13 @@ struct MainCameraView: View {
                 presentedPhoto = cameraManager.capturedPhoto
             }
         }
+        .onChange(of: appState.isVoiceEnabled) { _, v in guideEngine.voiceCoach.isEnabled = v }
+        .onChange(of: appState.selectedComposition) { _, v in
+            if let g = CompositionAnalyzer.CompositionGuide(rawValue: v) {
+                guideEngine.compositionAnalyzer.selectedGuide = g
+            }
+        }
+        .onChange(of: appState.guidanceLevel) { _, v in guideEngine.guidanceLevel = v }
     }
 
     // MARK: - Recording Overlay
@@ -202,9 +219,17 @@ struct MainCameraView: View {
                     Image(systemName: guideEngine.sceneClassifier.currentScene.icon)
                     Text(guideEngine.sceneClassifier.currentScene.displayName)
                         .font(.caption.bold())
+                    if guideEngine.sceneClassifier.isManualOverride {
+                        Image(systemName: "lock.fill").font(.system(size: 8))
+                    }
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7)
-                .background(.ultraThinMaterial, in: Capsule())
+                .background(
+                    guideEngine.sceneClassifier.isManualOverride
+                        ? AnyShapeStyle(.orange.opacity(0.3))
+                        : AnyShapeStyle(.ultraThinMaterial),
+                    in: Capsule()
+                )
             }
 
             Spacer()
@@ -212,6 +237,29 @@ struct MainCameraView: View {
             Spacer()
 
             HStack(spacing: 8) {
+                Button {
+                    withAnimation {
+                        switch timerSetting {
+                        case 0: timerSetting = 3
+                        case 3: timerSetting = 10
+                        default: timerSetting = 0
+                        }
+                    }
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "timer")
+                            .foregroundStyle(timerSetting > 0 ? .orange : .white)
+                            .padding(8).background(.ultraThinMaterial, in: Circle())
+                        if timerSetting > 0 {
+                            Text("\(timerSetting)")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundStyle(.white)
+                                .frame(width: 14, height: 14)
+                                .background(.orange, in: Circle())
+                                .offset(x: 2, y: -2)
+                        }
+                    }
+                }
                 Button { cameraManager.cycleFlashMode() } label: {
                     Image(systemName: flashIcon)
                         .padding(8).background(.ultraThinMaterial, in: Circle())
@@ -221,7 +269,10 @@ struct MainCameraView: View {
                         .foregroundStyle(showLevelIndicator ? .orange : .white)
                         .padding(8).background(.ultraThinMaterial, in: Circle())
                 }
-                Button { guideEngine.voiceCoach.isEnabled.toggle() } label: {
+                Button {
+                    guideEngine.voiceCoach.isEnabled.toggle()
+                    appState.isVoiceEnabled = guideEngine.voiceCoach.isEnabled
+                } label: {
                     Image(systemName: guideEngine.voiceCoach.isEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
                         .padding(8).background(.ultraThinMaterial, in: Circle())
                 }
@@ -467,7 +518,7 @@ struct MainCameraView: View {
             Button {
                 if isVideoMode {
                     cameraManager.isRecording ? cameraManager.stopRecording() : cameraManager.startRecording()
-                } else if timerSeconds > 0 {
+                } else if timerSetting > 0 {
                     startCountdown()
                 } else {
                     cameraManager.capturePhoto()
@@ -554,8 +605,17 @@ struct MainCameraView: View {
         VStack(spacing: 4) {
             let priority = guideEngine.currentAdvices.filter { $0.priority >= 1 && $0.priority <= 4 }
             let other = guideEngine.currentAdvices.filter { $0.priority > 4 }
-            ForEach(priority.prefix(2)) { a in adviceRow(a, highlight: true) }
-            if let o = other.first { adviceRow(o, highlight: false) }
+
+            switch appState.guidanceLevel {
+            case .beginner:
+                if let first = priority.first { adviceRow(first, highlight: true) }
+            case .intermediate:
+                ForEach(priority.prefix(2)) { a in adviceRow(a, highlight: true) }
+                if let o = other.first { adviceRow(o, highlight: false) }
+            case .advanced:
+                ForEach(priority.prefix(3)) { a in adviceRow(a, highlight: true) }
+                ForEach(other.prefix(2)) { a in adviceRow(a, highlight: false) }
+            }
         }
         .padding(.horizontal).padding(.bottom, 2)
     }
@@ -591,17 +651,26 @@ struct MainCameraView: View {
         }.padding()
     }
 
+    private func syncSettingsToEngine() {
+        guideEngine.voiceCoach.isEnabled = appState.isVoiceEnabled
+        guideEngine.guidanceLevel = appState.guidanceLevel
+        if let guide = CompositionAnalyzer.CompositionGuide(rawValue: appState.selectedComposition) {
+            guideEngine.compositionAnalyzer.selectedGuide = guide
+        }
+    }
+
     private func startCountdown() {
+        guard !isCountingDown else { return }
         isCountingDown = true
-        var remaining = timerSeconds
+        timerSeconds = timerSetting
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [self] timer in
-            remaining -= 1
             Task { @MainActor in
-                timerSeconds = remaining
-                if remaining <= 0 {
+                timerSeconds -= 1
+                if timerSeconds <= 0 {
                     timer.invalidate()
                     isCountingDown = false
                     cameraManager.capturePhoto()
+                    guideEngine.voiceCoach.speak("拍摄！", priority: .high)
                 }
             }
         }
